@@ -1,0 +1,976 @@
+{
+	"AWSTemplateFormatVersion": "2010-09-09",
+	"Description": "(v4.0) Deploy an inspection VPC for a FortiGate CNF design with 6 subnets (Public, Gwlb, and TgwAttach) across 2x Availability Zones.",
+	"Metadata": {
+		"AWS::CloudFormation::Interface": {
+			"ParameterGroups": [
+				{
+					"Label": {
+						"default": "VPC Configuration"
+					},
+					"Parameters": [
+						"VPCCIDR",
+						"PublicSubnet1",
+						"PublicSubnet2",
+						"PrivateSubnet1",
+						"PrivateSubnet2",
+						"GwlbSubnet1",
+						"GwlbSubnet2",
+						"TgwAttachSubnet1",
+						"TgwAttachSubnet2"
+					]
+				}
+			]
+		}
+	},
+	"Parameters": {
+		"VPCCIDR": {
+			"Type": "String",
+			"Default": "10.0.0.0/16",
+			"Description": "Provide a network CIDR for the VPC"
+		},
+		"PublicSubnet1": {
+			"Type": "String",
+			"Default": "10.0.1.0/24",
+			"Description": "Provide a network CIDR for PublicSubnet1"
+		},
+		"PrivateSubnet1": {
+			"Type": "String",
+			"Default": "10.0.3.0/24",
+			"Description": "Provide a network CIDR for PrivateSubnet1"
+		},
+		"GwlbSubnet1": {
+			"Type": "String",
+			"Default": "10.0.5.0/24",
+			"Description": "Provide a network CIDR for GwlbSubnet1"
+		},
+		"PublicSubnet2": {
+			"Type": "String",
+			"Default": "10.0.2.0/24",
+			"Description": "Provide a network CIDR for PublicSubnet2"
+		},
+		"PrivateSubnet2": {
+			"Type": "String",
+			"Default": "10.0.4.0/24",
+			"Description": "Provide a network CIDR for PrivateSubnet2"
+		},
+		"GwlbSubnet2": {
+			"Type": "String",
+			"Default": "10.0.6.0/24",
+			"Description": "Provide a network CIDR for GwlbSubnet2"
+		},
+		"TgwAttachSubnet1": {
+			"Type": "String",
+			"Default": "10.0.7.0/24",
+			"Description": "[Ignore if TgwAttach is No] Provide a network CIDR for TgwAttachSubnet1"
+		},
+		"TgwAttachSubnet2": {
+			"Type": "String",
+			"Default": "10.0.8.0/24",
+			"Description": "[Ignore if TgwAttach is No] Provide a network CIDR for TgwAttachSubnet2"
+		}
+	},
+	"Mappings": {
+	},
+	"Conditions": {
+	},
+	"Resources": {
+		"VPCID": {
+			"Type": "AWS::EC2::VPC",
+			"Properties": {
+				"CidrBlock": {
+					"Ref": "VPCCIDR"
+				},
+				"EnableDnsSupport": "true",
+				"EnableDnsHostnames": "true",
+				"Tags": [
+					{
+						"Key": "Name",
+						"Value": {
+							"Fn::Join": [
+								"-",
+								[
+									{
+										"Ref": "AWS::StackName"
+									},
+									"VPC"
+								]
+							]
+						}
+					}
+				]
+			}
+		},
+		"PublicSub1": {
+			"Type": "AWS::EC2::Subnet",
+			"Properties": {
+				"VpcId": {
+					"Ref": "VPCID"
+				},
+				"CidrBlock": {
+					"Ref": "PublicSubnet1"
+				},
+				"AvailabilityZone": {
+					"Fn::Select": [
+						"0",
+						{
+							"Fn::GetAZs": ""
+						}
+					]
+				},
+				"Tags": [
+					{
+						"Key": "Name",
+						"Value": {
+							"Fn::Join": [
+								"-",
+								[
+									{
+										"Ref": "AWS::StackName"
+									},
+									"PublicSubnet1"
+								]
+							]
+						}
+					}
+				]
+			}
+		},
+		"GwlbSub1": {
+			"Type": "AWS::EC2::Subnet",
+			"Properties": {
+				"VpcId": {
+					"Ref": "VPCID"
+				},
+				"CidrBlock": {
+					"Ref": "GwlbSubnet1"
+				},
+				"AvailabilityZone": {
+					"Fn::Select": [
+						"0",
+						{
+							"Fn::GetAZs": ""
+						}
+					]
+				},
+				"Tags": [
+					{
+						"Key": "Name",
+						"Value": {
+							"Fn::Join": [
+								"-",
+								[
+									{
+										"Ref": "AWS::StackName"
+									},
+									"GwlbSubnet1"
+								]
+							]
+						}
+					},
+					{
+						"Key": "fortigatecnf_subnet_type",
+						"Value": "endpoint"
+					}
+				]
+			}
+		},
+		"PublicSub2": {
+			"Type": "AWS::EC2::Subnet",
+			"Properties": {
+				"VpcId": {
+					"Ref": "VPCID"
+				},
+				"CidrBlock": {
+					"Ref": "PublicSubnet2"
+				},
+				"AvailabilityZone": {
+					"Fn::Select": [
+						"1",
+						{
+							"Fn::GetAZs": ""
+						}
+					]
+				},
+				"Tags": [
+					{
+						"Key": "Name",
+						"Value": {
+							"Fn::Join": [
+								"-",
+								[
+									{
+										"Ref": "AWS::StackName"
+									},
+									"PublicSubnet2"
+								]
+							]
+						}
+					}
+				]
+			}
+		},
+		"GwlbSub2": {
+			"Type": "AWS::EC2::Subnet",
+			"Properties": {
+				"VpcId": {
+					"Ref": "VPCID"
+				},
+				"CidrBlock": {
+					"Ref": "GwlbSubnet2"
+				},
+				"AvailabilityZone": {
+					"Fn::Select": [
+						"1",
+						{
+							"Fn::GetAZs": ""
+						}
+					]
+				},
+				"Tags": [
+					{
+						"Key": "Name",
+						"Value": {
+							"Fn::Join": [
+								"-",
+								[
+									{
+										"Ref": "AWS::StackName"
+									},
+									"GwlbSubnet2"
+								]
+							]
+						}
+					},
+					{
+						"Key": "fortigatecnf_subnet_type",
+						"Value": "endpoint"
+					}
+				]
+			}
+		},
+		"TgwAttachSub1": {
+			"Type": "AWS::EC2::Subnet",
+			"Properties": {
+				"VpcId": {
+					"Ref": "VPCID"
+				},
+				"CidrBlock": {
+					"Ref": "TgwAttachSubnet1"
+				},
+				"AvailabilityZone": {
+					"Fn::Select": [
+						"0",
+						{
+							"Fn::GetAZs": ""
+						}
+					]
+				},
+				"Tags": [
+					{
+						"Key": "Name",
+						"Value": {
+							"Fn::Join": [
+								"-",
+								[
+									{
+										"Ref": "AWS::StackName"
+									},
+									"TgwAttachSubnet1"
+								]
+							]
+						}
+					}
+				]
+			}
+		},
+		"TgwAttachSub2": {
+			"Type": "AWS::EC2::Subnet",
+			"Properties": {
+				"VpcId": {
+					"Ref": "VPCID"
+				},
+				"CidrBlock": {
+					"Ref": "TgwAttachSubnet2"
+				},
+				"AvailabilityZone": {
+					"Fn::Select": [
+						"1",
+						{
+							"Fn::GetAZs": ""
+						}
+					]
+				},
+				"Tags": [
+					{
+						"Key": "Name",
+						"Value": {
+							"Fn::Join": [
+								"-",
+								[
+									{
+										"Ref": "AWS::StackName"
+									},
+									"TgwAttachSubnet2"
+								]
+							]
+						}
+					}
+				]
+			}
+		},
+		"InternetGateway": {
+			"Type": "AWS::EC2::InternetGateway",
+			"Properties": {
+				"Tags": [
+					{
+						"Key": "Name",
+						"Value": {
+							"Fn::Join": [
+								"-",
+								[
+									{
+										"Ref": "AWS::StackName"
+									},
+									"IGW"
+								]
+							]
+						}
+					}
+				]
+			}
+		},
+		"AttachGateway": {
+			"Type": "AWS::EC2::VPCGatewayAttachment",
+			"Properties": {
+				"VpcId": {
+					"Ref": "VPCID"
+				},
+				"InternetGatewayId": {
+					"Ref": "InternetGateway"
+				}
+			}
+		},
+		"NatGatewayEIP1": {
+			"Type": "AWS::EC2::EIP",
+			"Properties": {
+				"Domain": "vpc"
+			}
+		},
+		"NatGatewayEIP2": {
+			"Type": "AWS::EC2::EIP",
+			"Properties": {
+				"Domain": "vpc"
+			}
+		},
+		"NatGateway1": {
+			"Type": "AWS::EC2::NatGateway",
+			"Properties": {
+				"AllocationId": {
+					"Fn::GetAtt": [
+						"NatGatewayEIP1",
+						"AllocationId"
+					]
+				},
+				"SubnetId": {
+					"Ref": "PublicSub1"
+				},
+				"Tags": [
+					{
+						"Key": "Name",
+						"Value": {
+							"Fn::Join": [
+								"-",
+								[
+									{
+										"Ref": "AWS::StackName"
+									},
+									"NatGW1"
+								]
+							]
+						}
+					}
+				]
+			}
+		},
+		"NatGateway2": {
+			"Type": "AWS::EC2::NatGateway",
+			"Properties": {
+				"AllocationId": {
+					"Fn::GetAtt": [
+						"NatGatewayEIP2",
+						"AllocationId"
+					]
+				},
+				"SubnetId": {
+					"Ref": "PublicSub2"
+				},
+				"Tags": [
+					{
+						"Key": "Name",
+						"Value": {
+							"Fn::Join": [
+								"-",
+								[
+									{
+										"Ref": "AWS::StackName"
+									},
+									"NatGW2"
+								]
+							]
+						}
+					}
+				]
+			}
+		},
+		"LambdaRole": {
+			"Type": "AWS::IAM::Role",
+			"Properties": {
+				"RoleName": {
+					"Fn::Join": [
+						"-",
+						[
+							{
+								"Ref": "AWS::StackName"
+							},
+							"LambdaRole"
+						]
+					]
+				},
+				"AssumeRolePolicyDocument": {
+					"Version": "2012-10-17",
+					"Statement": [
+						{
+							"Effect": "Allow",
+							"Principal": {
+								"Service": [
+									"lambda.amazonaws.com"
+								]
+							},
+							"Action": [
+								"sts:AssumeRole"
+							]
+						}
+					]
+				},
+				"Path": "/",
+				"Policies": [
+					{
+						"PolicyName": "root",
+						"PolicyDocument": {
+							"Version": "2012-10-17",
+							"Statement": [
+								{
+									"Effect": "Allow",
+									"Action": [
+										"ec2:DescribeTransitGatewayVpcAttachments",
+										"ec2:ModifyTransitGatewayVpcAttachment",
+										"logs:CreateLogGroup",
+										"logs:CreateLogStream",
+										"logs:PutLogEvents"
+									],
+									"Resource": "*"
+								}
+							]
+						}
+					}
+				]
+			}
+		},
+		"TransitGateway": {
+			"Type": "AWS::EC2::TransitGateway",
+			"Properties": {
+				"AmazonSideAsn": 64512,
+				"AutoAcceptSharedAttachments": "enable",
+				"DefaultRouteTableAssociation": "disable",
+				"DefaultRouteTablePropagation": "disable",
+				"DnsSupport": "enable",
+				"VpnEcmpSupport": "enable",
+				"Tags": [
+					{
+						"Key": "Name",
+						"Value": {
+							"Fn::Join": [
+								"-",
+								[
+									{
+										"Ref": "AWS::StackName"
+									},
+									"TGW"
+								]
+							]
+						}
+					}
+				]
+			}
+		},
+		"TransitGatewaySecurityVpcAttachment": {
+			"Type": "AWS::EC2::TransitGatewayAttachment",
+			"Properties": {
+				"SubnetIds": [
+					{
+						"Ref": "TgwAttachSub1"
+					},
+					{
+						"Ref": "TgwAttachSub2"
+					}
+				],
+				"TransitGatewayId": {
+					"Ref": "TransitGateway"
+				},
+				"VpcId": {
+					"Ref": "VPCID"
+				},
+				"Tags": [
+					{
+						"Key": "Name",
+						"Value": {
+							"Fn::Join": [
+								"-",
+								[
+									{
+										"Ref": "AWS::StackName"
+									},
+									"security-vpc-attachment"
+								]
+							]
+						}
+					}
+				]
+			}
+		},
+		"TransitGatewaySecurityRtb": {
+			"Type": "AWS::EC2::TransitGatewayRouteTable",
+			"Properties": {
+				"TransitGatewayId": {
+					"Ref": "TransitGateway"
+				},
+				"Tags": [
+					{
+						"Key": "Name",
+						"Value": {
+							"Fn::Join": [
+								"-",
+								[
+									{
+										"Ref": "AWS::StackName"
+									},
+									"security-tgw-rtb"
+								]
+							]
+						}
+					}
+				]
+			}
+		},
+		"TransitGatewaySpokeRtb": {
+			"Type": "AWS::EC2::TransitGatewayRouteTable",
+			"Properties": {
+				"TransitGatewayId": {
+					"Ref": "TransitGateway"
+				},
+				"Tags": [
+					{
+						"Key": "Name",
+						"Value": {
+							"Fn::Join": [
+								"-",
+								[
+									{
+										"Ref": "AWS::StackName"
+									},
+									"spoke-tgw-rtb"
+								]
+							]
+						}
+					}
+				]
+			}
+		},
+		"TransitGatewaySecurityVpcAttachmentAssociation": {
+			"Type": "AWS::EC2::TransitGatewayRouteTableAssociation",
+			"Properties": {
+				"TransitGatewayAttachmentId": {
+					"Ref": "TransitGatewaySecurityVpcAttachment"
+				},
+				"TransitGatewayRouteTableId": {
+					"Ref": "TransitGatewaySecurityRtb"
+				}
+			}
+		},
+		"TransitGatewayRoute1": {
+			"Type": "AWS::EC2::TransitGatewayRoute",
+			"Properties": {
+				"TransitGatewayAttachmentId": {
+					"Ref": "TransitGatewaySecurityVpcAttachment"
+				},
+				"DestinationCidrBlock": "0.0.0.0/0",
+				"TransitGatewayRouteTableId": {
+					"Ref": "TransitGatewaySpokeRtb"
+				}
+			}
+		},
+		"PublicRouteTable": {
+			"Type": "AWS::EC2::RouteTable",
+			"Properties": {
+				"VpcId": {
+					"Ref": "VPCID"
+				},
+				"Tags": [
+					{
+						"Key": "Name",
+						"Value": {
+							"Fn::Join": [
+								"-",
+								[
+									{
+										"Ref": "AWS::StackName"
+									},
+									"PublicRouteTable"
+								]
+							]
+						}
+					}
+				]
+			}
+		},
+		"GwlbRouteTable1": {
+			"Type": "AWS::EC2::RouteTable",
+			"Properties": {
+				"VpcId": {
+					"Ref": "VPCID"
+				},
+				"Tags": [
+					{
+						"Key": "Name",
+						"Value": {
+							"Fn::Join": [
+								"-",
+								[
+									{
+										"Ref": "AWS::StackName"
+									},
+									"GwlbRouteTable1"
+								]
+							]
+						}
+					}
+				]
+			}
+		},
+		"GwlbRouteTable2": {
+			"Type": "AWS::EC2::RouteTable",
+			"Properties": {
+				"VpcId": {
+					"Ref": "VPCID"
+				},
+				"Tags": [
+					{
+						"Key": "Name",
+						"Value": {
+							"Fn::Join": [
+								"-",
+								[
+									{
+										"Ref": "AWS::StackName"
+									},
+									"GwlbRouteTable2"
+								]
+							]
+						}
+					}
+				]
+			}
+		},
+		"TgwAttach1RouteTable": {
+			"Type": "AWS::EC2::RouteTable",
+			"Properties": {
+				"VpcId": {
+					"Ref": "VPCID"
+				},
+				"Tags": [
+					{
+						"Key": "Name",
+						"Value": {
+							"Fn::Join": [
+								"-",
+								[
+									{
+										"Ref": "AWS::StackName"
+									},
+									"TgwAttach1RouteTable"
+								]
+							]
+						}
+					}
+				]
+			}
+		},
+		"TgwAttach2RouteTable": {
+			"Type": "AWS::EC2::RouteTable",
+			"Properties": {
+				"VpcId": {
+					"Ref": "VPCID"
+				},
+				"Tags": [
+					{
+						"Key": "Name",
+						"Value": {
+							"Fn::Join": [
+								"-",
+								[
+									{
+										"Ref": "AWS::StackName"
+									},
+									"TgwAttach2RouteTable"
+								]
+							]
+						}
+					}
+				]
+			}
+		},
+		"Route1": {
+			"Type": "AWS::EC2::Route",
+			"DependsOn": "AttachGateway",
+			"Properties": {
+				"RouteTableId": {
+					"Ref": "PublicRouteTable"
+				},
+				"DestinationCidrBlock": "0.0.0.0/0",
+				"GatewayId": {
+					"Ref": "InternetGateway"
+				}
+			}
+		},
+		"Route2": {
+			"Type": "AWS::EC2::Route",
+			"DependsOn": [
+				"TransitGateway",
+				"TransitGatewaySecurityVpcAttachment",
+				"TransitGatewaySecurityVpcAttachmentAssociation"
+			],
+			"Properties": {
+				"RouteTableId": {
+					"Ref": "GwlbRouteTable1"
+				},
+				"DestinationCidrBlock": "10.0.0.0/8",
+				"TransitGatewayId": {
+					"Ref": "TransitGateway"
+				}
+			}
+		},
+		"Route3": {
+			"Type": "AWS::EC2::Route",
+			"DependsOn": [
+				"TransitGateway",
+				"TransitGatewaySecurityVpcAttachment",
+				"TransitGatewaySecurityVpcAttachmentAssociation"
+			],
+			"Properties": {
+				"RouteTableId": {
+					"Ref": "GwlbRouteTable2"
+				},
+				"DestinationCidrBlock": "10.0.0.0/8",
+				"TransitGatewayId": {
+					"Ref": "TransitGateway"
+				}
+			}
+		},
+		"Route4": {
+			"Type": "AWS::EC2::Route",
+			"DependsOn": [
+				"TransitGateway",
+				"TransitGatewaySecurityVpcAttachment",
+				"TransitGatewaySecurityVpcAttachmentAssociation"
+			],
+			"Properties": {
+				"RouteTableId": {
+					"Ref": "GwlbRouteTable1"
+				},
+				"DestinationCidrBlock": "0.0.0.0/0",
+				"NatGatewayId": {
+					"Ref": "NatGateway1"
+				}
+			}
+		},
+		"Route5": {
+			"Type": "AWS::EC2::Route",
+			"DependsOn": [
+				"TransitGateway",
+				"TransitGatewaySecurityVpcAttachment",
+				"TransitGatewaySecurityVpcAttachmentAssociation"
+			],
+			"Properties": {
+				"RouteTableId": {
+					"Ref": "GwlbRouteTable2"
+				},
+				"DestinationCidrBlock": "0.0.0.0/0",
+				"NatGatewayId": {
+					"Ref": "NatGateway2"
+				}
+			}
+		},
+		"SubnetRouteTableAssociation1": {
+			"Type": "AWS::EC2::SubnetRouteTableAssociation",
+			"Properties": {
+				"SubnetId": {
+					"Ref": "PublicSub1"
+				},
+				"RouteTableId": {
+					"Ref": "PublicRouteTable"
+				}
+			}
+		},
+		"SubnetRouteTableAssociation2": {
+			"Type": "AWS::EC2::SubnetRouteTableAssociation",
+			"Properties": {
+				"SubnetId": {
+					"Ref": "PublicSub2"
+				},
+				"RouteTableId": {
+					"Ref": "PublicRouteTable"
+				}
+			}
+		},
+		"SubnetRouteTableAssociation3": {
+			"Type": "AWS::EC2::SubnetRouteTableAssociation",
+			"Properties": {
+				"SubnetId": {
+					"Ref": "GwlbSub1"
+				},
+				"RouteTableId": {
+					"Ref": "GwlbRouteTable1"
+				}
+			}
+		},
+		"SubnetRouteTableAssociation4": {
+			"Type": "AWS::EC2::SubnetRouteTableAssociation",
+			"Properties": {
+				"SubnetId": {
+					"Ref": "GwlbSub2"
+				},
+				"RouteTableId": {
+					"Ref": "GwlbRouteTable2"
+				}
+			}
+		},
+		"SubnetRouteTableAssociation5": {
+			"Type": "AWS::EC2::SubnetRouteTableAssociation",
+			"Properties": {
+				"SubnetId": {
+					"Ref": "TgwAttachSub1"
+				},
+				"RouteTableId": {
+					"Ref": "TgwAttach1RouteTable"
+				}
+			}
+		},
+		"SubnetRouteTableAssociation6": {
+			"Type": "AWS::EC2::SubnetRouteTableAssociation",
+			"Properties": {
+				"SubnetId": {
+					"Ref": "TgwAttachSub2"
+				},
+				"RouteTableId": {
+					"Ref": "TgwAttach2RouteTable"
+				}
+			}
+		},
+		"TgwApplianceMode": {
+			"Type": "AWS::Lambda::Function",
+			"Properties": {
+				"Handler": "index.handler",
+				"Role": {
+					"Fn::GetAtt": [
+						"LambdaRole",
+						"Arn"
+					]
+				},
+				"Code": {
+					"ZipFile": {
+						"Fn::Join": [
+							"\n",
+							[
+								"import boto3",
+								"import cfnresponse",
+								"import logging",
+								"import json",
+								"logger = logging.getLogger()",
+								"logger.setLevel(logging.INFO)",
+								"ec2 = boto3.client('ec2')",
+								"",
+								"def handler(event, context):",
+								"    if event['RequestType'] == 'Create':",
+								"        logger.info('<-- event received: {}'.format(json.dumps(event)))",
+								"    else:",
+								"        responseData = {'msg':'200'}",
+								"        cfnresponse.send(event, context, cfnresponse.SUCCESS, responseData)",
+								"        return None",
+								"",
+								"    try:",
+								"        response = ec2.modify_transit_gateway_vpc_attachment(",
+								"                TransitGatewayAttachmentId = event['ResourceProperties']['TgwInspectionVpcAttachmentId'],",
+								"                Options = {'ApplianceModeSupport': event['ResourceProperties']['ApplianceMode']}",
+								"            )",
+								"    except Exception as error:",
+								"        logger.error('<--!! Exception: {}'.format(error))",
+								"        responseData = {'msg':'Exception: {}'.format(error)}",
+								"        cfnresponse.send(event, context, cfnresponse.FAILED, responseData)",
+								"",
+								"    if response['ResponseMetadata']['HTTPStatusCode'] == 200 and response['TransitGatewayVpcAttachment'] != []:",
+								"        tgw_status = response['TransitGatewayVpcAttachment']['Options']['ApplianceModeSupport']",
+								"        logger.info('--> Current Tgw Status: {}'.format(tgw_status))",
+								"        responseData = {'Tgw ApplianceMode Status': tgw_status}",
+								"        cfnresponse.send(event, context, cfnresponse.SUCCESS, responseData)",
+								"    else:",
+								"        logger.error('!!--> Unable to modify Tgw Attachment! {}'.format(response))",
+								"        responseData = {'msg':'error'}",
+								"        cfnresponse.send(event, context, cfnresponse.FAILED, responseData)",
+								""
+							]
+						]
+					}
+				},
+				"Runtime": "python3.9",
+				"Timeout": 30
+			}
+		},
+		"RunTgwApplianceMode": {
+			"Type": "Custom::RunTgwApplianceMode",
+			"DependsOn": "TransitGatewayRoute1",
+			"Properties": {
+				"ServiceToken": {
+					"Fn::GetAtt": [
+						"TgwApplianceMode",
+						"Arn"
+					]
+				},
+				"TgwInspectionVpcAttachmentId": {
+					"Ref": "TransitGatewaySecurityVpcAttachment"
+				},
+				"ApplianceMode": "enable"
+			}
+		}
+	},
+	"Outputs": {
+		"TransitGateway": {
+			"Value": {
+				"Ref": "TransitGateway"
+			},
+			"Description": "Transit Gateway ID, for use in spoke template"
+		},
+		"TransitGatewaySecurityRtb": {
+			"Value": {
+				"Ref": "TransitGatewaySecurityRtb"
+			},
+			"Description": "Transit Gateway Route Table ID that the security VPC is associated to, for use in spoke template"
+		},
+		"TransitGatewaySpokeRtb": {
+			"Value": {
+				"Ref": "TransitGatewaySpokeRtb"
+			},
+			"Description": "Transit Gateway Route Table ID that the spoke VPCs will associate to, for use in spoke template"
+		}
+	}
+}
