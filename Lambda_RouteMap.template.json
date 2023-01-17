@@ -1,0 +1,216 @@
+{
+	"AWSTemplateFormatVersion": "2010-09-09",
+	"Description": "(v5.0) AWS CFT to deploy a lambda function to create VPC routes",
+	"Metadata": {
+		"AWS::CloudFormation::Interface": {
+			"ParameterGroups": [
+				{
+					"Label": {
+						"default": "Nested Stack Name"
+					},
+					"Parameters": [
+						"StackName"
+					]
+				},
+				{
+					"Label": {
+						"default": "Lambda Configuration"
+					},
+					"Parameters": [
+						"RouteMap"
+					]
+				}
+			]
+		}
+	},
+	"Parameters": {
+		"StackName": {
+			"Type": "String",
+			"Description": "A unique stack name passed by the master template"
+		},
+		"RouteMap": {
+			"Type": "String",
+			"Description": "Provide the route map input for processing"
+		}
+	},
+	"Mappings": {
+	},
+	"Conditions": {
+	},
+	"Resources": {
+		"PermissionForEventsToInvokeLambda": {
+			"Type": "AWS::Lambda::Permission",
+			"Properties": {
+				"FunctionName": {
+					"Ref": "RouteMapFunction"
+				},
+				"Action": "lambda:InvokeFunction",
+				"Principal": "events.amazonaws.com",
+				"SourceArn": {
+					"Fn::GetAtt": [
+						"CloudWatchEventRule",
+						"Arn"
+					]
+				}
+			}
+		},
+		"CloudWatchEventRule": {
+			"Type": "AWS::Events::Rule",
+			"Properties": {
+				"Description": "CloudWatchEventRule",
+				"ScheduleExpression": "rate(5 minutes)",
+				"State": "ENABLED",
+				"Targets": [
+					{
+						"Arn": {
+							"Fn::GetAtt": [
+								"RouteMapFunction",
+								"Arn"
+							]
+						},
+						"Id": "TargetFunctionV1"
+					}
+				]
+			}
+		},
+		"LambdaRole": {
+			"Type": "AWS::IAM::Role",
+			"Properties": {
+				"AssumeRolePolicyDocument": {
+					"Version": "2012-10-17",
+					"Statement": [
+						{
+							"Effect": "Allow",
+							"Principal": {
+								"Service": [
+									"lambda.amazonaws.com"
+								]
+							},
+							"Action": [
+								"sts:AssumeRole"
+							]
+						}
+					]
+				},
+				"Path": "/",
+				"Policies": [
+					{
+						"PolicyName": "InlinePolicy",
+						"PolicyDocument": {
+							"Version": "2012-10-17",
+							"Statement": [
+								{
+									"Effect": "Allow",
+									"Action": [
+										"ec2:DescribeSubnets",
+										"ec2:DescribeVpcEndpoints",
+										"ec2:DescribeRouteTables",
+										"ec2:CreateRoute",
+										"ec2:DeleteTags",
+										"logs:CreateLogGroup",
+										"logs:CreateLogStream",
+										"logs:PutLogEvents"
+									],
+									"Resource": "*"
+								}
+							]
+						}
+					}
+				]
+			}
+		},
+		"RouteMapFunction": {
+			"Type": "AWS::Lambda::Function",
+			"Properties": {
+				"Code": {
+					"ZipFile": {
+						"Fn::Join": [
+							"\n",
+							[
+								"import os",
+								"import sys",
+								"import boto3",
+								"import logging",
+								"import json",
+								"logger = logging.getLogger()",
+								"logger.setLevel(logging.INFO)",
+								"client = boto3.client('ec2')",
+								"",
+								"def handler(event, context):",
+								"    if event['detail-type'] == 'Scheduled Event':",
+								"        logger.info('<-- scheduled event received')",
+								"    else:",
+								"        return None",
+								"",
+								"    try:",
+								"        routemap = os.environ['RouteMap'].split(',')",
+								"        for line in routemap:",
+								"            items=line.split(':')",
+								"            sub,rtb,vpc,dst,vpce = items[0],items[1],items[2],items[3],''",
+								"            resp=client.describe_vpc_endpoints(",
+								"                    Filters=[",
+								"                        {'Name': 'vpc-id','Values': [vpc]},",
+								"                        {'Name': 'tag:ManagedBy','Values': ['fwaas']},",
+								"                        {'Name': 'vpc-endpoint-state','Values': ['available']}",
+								"                ]",
+								"            )",
+								"",
+								"            for endpoint in resp['VpcEndpoints']:",
+								"                if sub in endpoint['SubnetIds']:",
+								"                    vpce=endpoint['VpcEndpointId']",
+								"                    logger.info('--> vpce available: {}'.format(vpce))",
+								"",
+								"            if vpce != '':",
+								"                resp=client.describe_route_tables(",
+								"                        RouteTableIds=[rtb]",
+								"                )",
+								"                match=0",
+								"                for route in resp['RouteTables'][0]['Routes']:",
+								"                    if dst != route['DestinationCidrBlock']:",
+								"                        pass",
+								"                    if (dst == route['DestinationCidrBlock']) and (vpce == route['GatewayId']):",
+								"                        match+=1",
+								"                        logger.info('--> route already exists for routemap: {}'.format(items))",
+								"",
+								"                if match == 0:",
+								"                    resp=client.create_route(",
+								"                            RouteTableId=rtb,",
+								"                            DestinationCidrBlock=dst,",
+								"                            VpcEndpointId=vpce",
+								"                    )",
+								"                    logger.info('--> created route for routemap: {}'.format(items))",
+								"                    print(resp)",
+								"            else:",
+								"                logger.info('--> vpce not ready: {}'.format(vpce))",
+								"",
+								"    except Exception as error:",
+								"        logger.error('<--!! Exception: {}'.format(error))",
+								"        return None",
+								""
+							]
+						]
+					}
+				},
+				"Environment": {
+					"Variables": {
+						"RouteMap": {
+							"Ref": "RouteMap"
+						}
+					}
+				},
+				"Role": {
+					"Fn::GetAtt": [
+						"LambdaRole",
+						"Arn"
+					]
+				},
+				"Timeout": 120,
+				"Handler": "index.handler",
+				"Runtime": "python3.9",
+				"MemorySize": 128
+			}
+		}
+	},
+	"Outputs": {
+	}
+}

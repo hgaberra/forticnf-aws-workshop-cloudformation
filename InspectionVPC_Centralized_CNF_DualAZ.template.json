@@ -1,9 +1,17 @@
 {
 	"AWSTemplateFormatVersion": "2010-09-09",
-	"Description": "(v4.0) Deploy an inspection VPC for a FortiGate CNF design with 6 subnets (Public, Gwlb, and TgwAttach) across 2x Availability Zones.",
+	"Description": "(v5.0) Deploy an inspection VPC for a FortiGate CNF design with 6 subnets (Public, Gwlb, and TgwAttach) across 2x Availability Zones.",
 	"Metadata": {
 		"AWS::CloudFormation::Interface": {
 			"ParameterGroups": [
+				{
+					"Label": {
+						"default": "Nested Stack Name"
+					},
+					"Parameters": [
+						"StackName"
+					]
+				},
 				{
 					"Label": {
 						"default": "VPC Configuration"
@@ -24,6 +32,10 @@
 		}
 	},
 	"Parameters": {
+		"StackName": {
+			"Type": "String",
+			"Description": "A unique stack name passed by the master template"
+		},
 		"VPCCIDR": {
 			"Type": "String",
 			"Default": "10.0.0.0/16",
@@ -91,7 +103,7 @@
 								"-",
 								[
 									{
-										"Ref": "AWS::StackName"
+										"Ref": "StackName"
 									},
 									"VPC"
 								]
@@ -126,7 +138,7 @@
 								"-",
 								[
 									{
-										"Ref": "AWS::StackName"
+										"Ref": "StackName"
 									},
 									"PublicSubnet1"
 								]
@@ -136,7 +148,7 @@
 				]
 			}
 		},
-		"GwlbSub1": {
+		"GwlbeSub1": {
 			"Type": "AWS::EC2::Subnet",
 			"Properties": {
 				"VpcId": {
@@ -161,7 +173,7 @@
 								"-",
 								[
 									{
-										"Ref": "AWS::StackName"
+										"Ref": "StackName"
 									},
 									"GwlbSubnet1"
 								]
@@ -200,7 +212,7 @@
 								"-",
 								[
 									{
-										"Ref": "AWS::StackName"
+										"Ref": "StackName"
 									},
 									"PublicSubnet2"
 								]
@@ -210,7 +222,7 @@
 				]
 			}
 		},
-		"GwlbSub2": {
+		"GwlbeSub2": {
 			"Type": "AWS::EC2::Subnet",
 			"Properties": {
 				"VpcId": {
@@ -235,7 +247,7 @@
 								"-",
 								[
 									{
-										"Ref": "AWS::StackName"
+										"Ref": "StackName"
 									},
 									"GwlbSubnet2"
 								]
@@ -274,7 +286,7 @@
 								"-",
 								[
 									{
-										"Ref": "AWS::StackName"
+										"Ref": "StackName"
 									},
 									"TgwAttachSubnet1"
 								]
@@ -309,7 +321,7 @@
 								"-",
 								[
 									{
-										"Ref": "AWS::StackName"
+										"Ref": "StackName"
 									},
 									"TgwAttachSubnet2"
 								]
@@ -330,7 +342,7 @@
 								"-",
 								[
 									{
-										"Ref": "AWS::StackName"
+										"Ref": "StackName"
 									},
 									"IGW"
 								]
@@ -383,7 +395,7 @@
 								"-",
 								[
 									{
-										"Ref": "AWS::StackName"
+										"Ref": "StackName"
 									},
 									"NatGW1"
 								]
@@ -413,7 +425,7 @@
 								"-",
 								[
 									{
-										"Ref": "AWS::StackName"
+										"Ref": "StackName"
 									},
 									"NatGW2"
 								]
@@ -426,17 +438,6 @@
 		"LambdaRole": {
 			"Type": "AWS::IAM::Role",
 			"Properties": {
-				"RoleName": {
-					"Fn::Join": [
-						"-",
-						[
-							{
-								"Ref": "AWS::StackName"
-							},
-							"LambdaRole"
-						]
-					]
-				},
 				"AssumeRolePolicyDocument": {
 					"Version": "2012-10-17",
 					"Statement": [
@@ -494,7 +495,7 @@
 								"-",
 								[
 									{
-										"Ref": "AWS::StackName"
+										"Ref": "StackName"
 									},
 									"TGW"
 								]
@@ -529,7 +530,7 @@
 								"-",
 								[
 									{
-										"Ref": "AWS::StackName"
+										"Ref": "StackName"
 									},
 									"security-vpc-attachment"
 								]
@@ -553,7 +554,7 @@
 								"-",
 								[
 									{
-										"Ref": "AWS::StackName"
+										"Ref": "StackName"
 									},
 									"security-tgw-rtb"
 								]
@@ -577,7 +578,7 @@
 								"-",
 								[
 									{
-										"Ref": "AWS::StackName"
+										"Ref": "StackName"
 									},
 									"spoke-tgw-rtb"
 								]
@@ -610,7 +611,7 @@
 				}
 			}
 		},
-		"PublicRouteTable": {
+		"Public1RouteTable": {
 			"Type": "AWS::EC2::RouteTable",
 			"Properties": {
 				"VpcId": {
@@ -624,9 +625,33 @@
 								"-",
 								[
 									{
-										"Ref": "AWS::StackName"
+										"Ref": "StackName"
 									},
-									"PublicRouteTable"
+									"Public1RouteTable"
+								]
+							]
+						}
+					}
+				]
+			}
+		},
+		"Public2RouteTable": {
+			"Type": "AWS::EC2::RouteTable",
+			"Properties": {
+				"VpcId": {
+					"Ref": "VPCID"
+				},
+				"Tags": [
+					{
+						"Key": "Name",
+						"Value": {
+							"Fn::Join": [
+								"-",
+								[
+									{
+										"Ref": "StackName"
+									},
+									"Public2RouteTable"
 								]
 							]
 						}
@@ -648,7 +673,7 @@
 								"-",
 								[
 									{
-										"Ref": "AWS::StackName"
+										"Ref": "StackName"
 									},
 									"GwlbRouteTable1"
 								]
@@ -672,7 +697,7 @@
 								"-",
 								[
 									{
-										"Ref": "AWS::StackName"
+										"Ref": "StackName"
 									},
 									"GwlbRouteTable2"
 								]
@@ -696,7 +721,7 @@
 								"-",
 								[
 									{
-										"Ref": "AWS::StackName"
+										"Ref": "StackName"
 									},
 									"TgwAttach1RouteTable"
 								]
@@ -720,7 +745,7 @@
 								"-",
 								[
 									{
-										"Ref": "AWS::StackName"
+										"Ref": "StackName"
 									},
 									"TgwAttach2RouteTable"
 								]
@@ -735,7 +760,7 @@
 			"DependsOn": "AttachGateway",
 			"Properties": {
 				"RouteTableId": {
-					"Ref": "PublicRouteTable"
+					"Ref": "Public1RouteTable"
 				},
 				"DestinationCidrBlock": "0.0.0.0/0",
 				"GatewayId": {
@@ -745,18 +770,14 @@
 		},
 		"Route2": {
 			"Type": "AWS::EC2::Route",
-			"DependsOn": [
-				"TransitGateway",
-				"TransitGatewaySecurityVpcAttachment",
-				"TransitGatewaySecurityVpcAttachmentAssociation"
-			],
+			"DependsOn": "AttachGateway",
 			"Properties": {
 				"RouteTableId": {
-					"Ref": "GwlbRouteTable1"
+					"Ref": "Public2RouteTable"
 				},
-				"DestinationCidrBlock": "10.0.0.0/8",
-				"TransitGatewayId": {
-					"Ref": "TransitGateway"
+				"DestinationCidrBlock": "0.0.0.0/0",
+				"GatewayId": {
+					"Ref": "InternetGateway"
 				}
 			}
 		},
@@ -769,7 +790,7 @@
 			],
 			"Properties": {
 				"RouteTableId": {
-					"Ref": "GwlbRouteTable2"
+					"Ref": "GwlbRouteTable1"
 				},
 				"DestinationCidrBlock": "10.0.0.0/8",
 				"TransitGatewayId": {
@@ -786,6 +807,19 @@
 			],
 			"Properties": {
 				"RouteTableId": {
+					"Ref": "GwlbRouteTable2"
+				},
+				"DestinationCidrBlock": "10.0.0.0/8",
+				"TransitGatewayId": {
+					"Ref": "TransitGateway"
+				}
+			}
+		},
+		"Route5": {
+			"Type": "AWS::EC2::Route",
+			"DependsOn": "NatGateway1",
+			"Properties": {
+				"RouteTableId": {
 					"Ref": "GwlbRouteTable1"
 				},
 				"DestinationCidrBlock": "0.0.0.0/0",
@@ -794,13 +828,9 @@
 				}
 			}
 		},
-		"Route5": {
+		"Route6": {
 			"Type": "AWS::EC2::Route",
-			"DependsOn": [
-				"TransitGateway",
-				"TransitGatewaySecurityVpcAttachment",
-				"TransitGatewaySecurityVpcAttachmentAssociation"
-			],
+			"DependsOn": "NatGateway2",
 			"Properties": {
 				"RouteTableId": {
 					"Ref": "GwlbRouteTable2"
@@ -818,7 +848,7 @@
 					"Ref": "PublicSub1"
 				},
 				"RouteTableId": {
-					"Ref": "PublicRouteTable"
+					"Ref": "Public1RouteTable"
 				}
 			}
 		},
@@ -829,7 +859,7 @@
 					"Ref": "PublicSub2"
 				},
 				"RouteTableId": {
-					"Ref": "PublicRouteTable"
+					"Ref": "Public2RouteTable"
 				}
 			}
 		},
@@ -837,7 +867,7 @@
 			"Type": "AWS::EC2::SubnetRouteTableAssociation",
 			"Properties": {
 				"SubnetId": {
-					"Ref": "GwlbSub1"
+					"Ref": "GwlbeSub1"
 				},
 				"RouteTableId": {
 					"Ref": "GwlbRouteTable1"
@@ -848,7 +878,7 @@
 			"Type": "AWS::EC2::SubnetRouteTableAssociation",
 			"Properties": {
 				"SubnetId": {
-					"Ref": "GwlbSub2"
+					"Ref": "GwlbeSub2"
 				},
 				"RouteTableId": {
 					"Ref": "GwlbRouteTable2"
@@ -954,6 +984,12 @@
 		}
 	},
 	"Outputs": {
+		"VPCID": {
+			"Value": {
+				"Ref": "VPCID"
+			},
+			"Description": "VPC ID, for use in workload and routemap templates"
+		},
 		"TransitGateway": {
 			"Value": {
 				"Ref": "TransitGateway"
@@ -971,6 +1007,42 @@
 				"Ref": "TransitGatewaySpokeRtb"
 			},
 			"Description": "Transit Gateway Route Table ID that the spoke VPCs will associate to, for use in spoke template"
+		},
+		"TgwAttach1RouteTable": {
+			"Value": {
+				"Ref": "TgwAttach1RouteTable"
+			},
+			"Description": "TgwAttach1RouteTable ID, for use in workload and routemap templates"
+		},
+		"TgwAttach2RouteTable": {
+			"Value": {
+				"Ref": "TgwAttach2RouteTable"
+			},
+			"Description": "TgwAttach2RouteTable ID, for use in workload and routemap templates"
+		},
+		"Public1RouteTable": {
+			"Value": {
+				"Ref": "Public1RouteTable"
+			},
+			"Description": "PublicRouteTable1 ID, for use in workload and routemap templates"
+		},
+		"Public2RouteTable": {
+			"Value": {
+				"Ref": "Public2RouteTable"
+			},
+			"Description": "PublicRouteTable2 ID, for use in workload and routemap templates"
+		},
+		"GwlbeSub1": {
+			"Value": {
+				"Ref": "GwlbeSub1"
+			},
+			"Description": "GwlbeSub1 ID, for use in workload and routemap templates"
+		},
+		"GwlbeSub2": {
+			"Value": {
+				"Ref": "GwlbeSub2"
+			},
+			"Description": "GwlbeSub1 ID, for use in workload and routemap templates"
 		}
 	}
 }

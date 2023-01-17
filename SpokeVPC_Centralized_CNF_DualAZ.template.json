@@ -1,9 +1,17 @@
 {
 	"AWSTemplateFormatVersion": "2010-09-09",
-	"Description": "(v1.0) Deploy a spoke VPC for a GWLB endpoint design with 6 subnets (Public, Private, Gwlbe) across 2 Availability Zones.",
+	"Description": "(v5.0) Deploy a spoke VPC for a FortiGate CNF design with 2 subnets (Private) across 2 Availability Zones.",
 	"Metadata": {
 		"AWS::CloudFormation::Interface": {
 			"ParameterGroups": [
+				{
+					"Label": {
+						"default": "Nested Stack Name"
+					},
+					"Parameters": [
+						"StackName"
+					]
+				},
 				{
 					"Label": {
 						"default": "VPC Configuration"
@@ -28,6 +36,10 @@
 		}
 	},
 	"Parameters": {
+		"StackName": {
+			"Type": "String",
+			"Description": "A unique stack name passed by the master template"
+		},
 		"VPCCIDR": {
 			"Type": "String",
 			"Default": "10.1.0.0/16",
@@ -75,7 +87,7 @@
 								"-",
 								[
 									{
-										"Ref": "AWS::StackName"
+										"Ref": "StackName"
 									},
 									"VPC"
 								]
@@ -110,7 +122,7 @@
 								"-",
 								[
 									{
-										"Ref": "AWS::StackName"
+										"Ref": "StackName"
 									},
 									"PrivateSubnet1"
 								]
@@ -145,7 +157,7 @@
 								"-",
 								[
 									{
-										"Ref": "AWS::StackName"
+										"Ref": "StackName"
 									},
 									"PrivateSubnet2"
 								]
@@ -180,7 +192,7 @@
 								"-",
 								[
 									{
-										"Ref": "AWS::StackName"
+										"Ref": "StackName"
 									},
 									"spoke-vpc-attachment"
 								]
@@ -228,7 +240,7 @@
 								"-",
 								[
 									{
-										"Ref": "AWS::StackName"
+										"Ref": "StackName"
 									},
 									"Private1RouteTable"
 								]
@@ -275,5 +287,29 @@
 		}
 	},
 	"Outputs": {
+		"VPCID": {
+			"Value": {
+				"Ref": "VPCID"
+			},
+			"Description": "VPC ID, for use in workload and routemap templates"
+		},
+		"VPCCIDR": {
+			"Value": {
+				"Ref": "VPCCIDR"
+			},
+			"Description": "VPCCIDR, for use in workload and routemap templates"
+		},
+		"PrivateSub1": {
+			"Value": {
+				"Ref": "PrivateSub1"
+			},
+			"Description": "PrivateSub1 ID, for use in workload and routemap templates"
+		},
+		"PrivateSub2": {
+			"Value": {
+				"Ref": "PrivateSub2"
+			},
+			"Description": "PrivateSub2 ID, for use in workload and routemap templates"
+		}
 	}
 }

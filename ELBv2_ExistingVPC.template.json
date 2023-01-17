@@ -1,0 +1,323 @@
+{
+	"AWSTemplateFormatVersion": "2010-09-09",
+	"Description": "(v5.0) AWS CFT to deploy an ELBv2 Load Balancer into an existing VPC",
+	"Metadata": {
+		"AWS::CloudFormation::Interface": {
+			"ParameterGroups": [
+				{
+					"Label": {
+						"default": "Nested Stack Name"
+					},
+					"Parameters": [
+						"StackName"
+					]
+				},
+				{
+					"Label": {
+						"default": "ELBv2 Configuration"
+					},
+					"Parameters": [
+						"VPCID",
+						"PubliclyAvailable",
+						"ELBv2Type",
+						"Subnet1",
+						"Subnet2",
+						"Target1",
+						"Target2"
+					]
+				}
+			]
+		}
+	},
+	"Parameters": {
+		"StackName": {
+			"Type": "String",
+			"Description": "A unique stack name passed by the master template"
+		},
+		"VPCID": {
+			"Type": "AWS::EC2::VPC::Id",
+			"Description": "Select the VPC to use"
+		},
+		"Subnet1": {
+			"Type": "AWS::EC2::Subnet::Id",
+			"Description": "Select the first subnet to deploy the ELBv2 into"
+		},
+		"Subnet2": {
+			"Type": "AWS::EC2::Subnet::Id",
+			"Description": "Select the second subnet to deploy the ELBv2 into"
+		},
+		"PubliclyAvailable": {
+			"Type": "String",
+			"Default": "Yes",
+			"Description": "Select if the Instance will have a EIP to be publicly available or not.  *** If you select No, then an S3 endpoint needs to be deployed and reachable from the subnet the Instance is in to successfully bootstrap.  Also, PAYG licensed instances require internet access to register with FortiCare successfully. ***",
+			"AllowedValues": [
+				"Yes",
+				"No"
+			]
+		},
+		"ELBv2Type": {
+			"Type": "String",
+			"Default": "network",
+			"Description": "Select the type of ELBv2 to deloy",
+			"AllowedValues": [
+				"network",
+				"application"
+			]
+		},
+		"Target1": {
+			"Type": "String",
+			"Description": "Instance ID of first target"
+		},
+		"Target2": {
+			"Type": "String",
+			"Description": "Instance ID of second target"
+		}
+	},
+	"Mappings": {
+		"ELBv2Info": {
+			"application": {
+				"Name": "ALB",
+				"Port": 80,
+				"Protocol": "HTTP"
+			},
+			"network": {
+				"Name": "ALB",
+				"Port": 80,
+				"Protocol": "TCP"
+			}
+		}
+	},
+	"Conditions": {
+		"SchemeInternal": {
+			"Fn::Equals": [
+				{
+					"Ref": "PubliclyAvailable"
+				},
+				"No"
+			]
+		}
+	},
+	"Resources": {
+		"ELBv2": {
+			"Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+			"Properties": {
+				"Name": {
+					"Ref": "StackName"
+				},
+				"Type": {
+					"Ref": "ELBv2Type"
+				},
+				"Scheme": {
+					"Fn::If": [
+						"SchemeInternal",
+						"internal",
+						"internet-facing"
+					]
+				},
+				"Subnets": [
+					{
+						"Ref": "Subnet1"
+					},
+					{
+						"Ref": "Subnet2"
+					}
+				],
+				"LoadBalancerAttributes": [
+					{
+						"Key": "load_balancing.cross_zone.enabled",
+						"Value": "true"
+					}
+				],
+				"Tags": [
+					{
+						"Key": "Name",
+						"Value": {
+							"Fn::Join": [
+								"-",
+								[
+									{
+										"Ref": "StackName"
+									},
+									{
+										"Fn::FindInMap": [
+											"ELBv2Info",
+											{
+												"Ref": "ELBv2Type"
+											},
+											"Name"
+										]
+									}
+								]
+							]
+						}
+					}
+				]
+			}
+		},
+		"TargetGroup": {
+			"Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+			"Properties": {
+				"Name": {
+					"Fn::Join": [
+						"-",
+						[
+							{
+								"Ref": "StackName"
+							},
+							{
+								"Fn::FindInMap": [
+									"ELBv2Info",
+									{
+										"Ref": "ELBv2Type"
+									},
+									"Protocol"
+								]
+							},
+							{
+								"Fn::FindInMap": [
+									"ELBv2Info",
+									{
+										"Ref": "ELBv2Type"
+									},
+									"Port"
+								]
+							}
+						]
+					]
+				},
+				"Port": {
+					"Fn::FindInMap": [
+						"ELBv2Info",
+						{
+							"Ref": "ELBv2Type"
+						},
+						"Port"
+					]
+				},
+				"Protocol": {
+					"Fn::FindInMap": [
+						"ELBv2Info",
+						{
+							"Ref": "ELBv2Type"
+						},
+						"Protocol"
+					]
+				},
+				"VpcId": {
+					"Ref": "VPCID"
+				},
+				"HealthCheckPort": "80",
+				"HealthCheckProtocol": "TCP",
+				"TargetType": "instance",
+				"Targets": [
+					{
+						"Id": {
+							"Ref": "Target1"
+						},
+						"Port": {
+							"Fn::FindInMap": [
+								"ELBv2Info",
+								{
+									"Ref": "ELBv2Type"
+								},
+								"Port"
+							]
+						}
+					},
+					{
+						"Id": {
+							"Ref": "Target2"
+						},
+						"Port": {
+							"Fn::FindInMap": [
+								"ELBv2Info",
+								{
+									"Ref": "ELBv2Type"
+								},
+								"Port"
+							]
+						}
+					}
+				],
+				"Tags": [
+					{
+						"Key": "Name",
+						"Value": {
+							"Fn::Join": [
+								"-",
+								[
+									{
+										"Ref": "StackName"
+									},
+									{
+										"Fn::FindInMap": [
+											"ELBv2Info",
+											{
+												"Ref": "ELBv2Type"
+											},
+											"Protocol"
+										]
+									},
+									{
+										"Fn::FindInMap": [
+											"ELBv2Info",
+											{
+												"Ref": "ELBv2Type"
+											},
+											"Port"
+										]
+									}
+								]
+							]
+						}
+					}
+				]
+			}
+		},
+		"Listener": {
+			"Type": "AWS::ElasticLoadBalancingV2::Listener",
+			"Properties": {
+				"DefaultActions": [
+					{
+						"Type": "forward",
+						"TargetGroupArn": {
+							"Ref": "TargetGroup"
+						}
+					}
+				],
+				"LoadBalancerArn": {
+					"Ref": "ELBv2"
+				},
+				"Port": {
+					"Fn::FindInMap": [
+						"ELBv2Info",
+						{
+							"Ref": "ELBv2Type"
+						},
+						"Port"
+					]
+				},
+				"Protocol": {
+					"Fn::FindInMap": [
+						"ELBv2Info",
+						{
+							"Ref": "ELBv2Type"
+						},
+						"Protocol"
+					]
+				}
+			}
+		}
+	},
+	"Outputs": {
+		"DNSName": {
+			"Value": {
+				"Fn::GetAtt": [
+					"ELBv2",
+					"DNSName"
+				]
+			},
+			"Description": "DNS Name for ELBv2"
+		}
+	}
+}

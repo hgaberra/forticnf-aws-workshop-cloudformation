@@ -1,9 +1,17 @@
 {
 	"AWSTemplateFormatVersion": "2010-09-09",
-	"Description": "(v1.0) Deploy a spoke VPC for a GWLB endpoint design with 6 subnets (Public, Private, Gwlbe) across 2 Availability Zones.",
+	"Description": "(v5.0) Deploy a spoke VPC for a FortiGate CNF design with 6 subnets (Public, Private, Gwlbe) across 2 Availability Zones.",
 	"Metadata": {
 		"AWS::CloudFormation::Interface": {
 			"ParameterGroups": [
+				{
+					"Label": {
+						"default": "Nested Stack Name"
+					},
+					"Parameters": [
+						"StackName"
+					]
+				},
 				{
 					"Label": {
 						"default": "VPC Configuration"
@@ -22,6 +30,10 @@
 		}
 	},
 	"Parameters": {
+		"StackName": {
+			"Type": "String",
+			"Description": "A unique stack name passed by the master template"
+		},
 		"VPCCIDR": {
 			"Type": "String",
 			"Default": "10.1.0.0/16",
@@ -77,7 +89,7 @@
 								"-",
 								[
 									{
-										"Ref": "AWS::StackName"
+										"Ref": "StackName"
 									},
 									"VPC"
 								]
@@ -112,7 +124,7 @@
 								"-",
 								[
 									{
-										"Ref": "AWS::StackName"
+										"Ref": "StackName"
 									},
 									"PublicSubnet1"
 								]
@@ -147,7 +159,7 @@
 								"-",
 								[
 									{
-										"Ref": "AWS::StackName"
+										"Ref": "StackName"
 									},
 									"PrivateSubnet1"
 								]
@@ -182,12 +194,16 @@
 								"-",
 								[
 									{
-										"Ref": "AWS::StackName"
+										"Ref": "StackName"
 									},
 									"GwlbeSubnet1"
 								]
 							]
 						}
+					},
+					{
+						"Key": "fortigatecnf_subnet_type",
+						"Value": "endpoint"
 					}
 				]
 			}
@@ -217,7 +233,7 @@
 								"-",
 								[
 									{
-										"Ref": "AWS::StackName"
+										"Ref": "StackName"
 									},
 									"PublicSubnet2"
 								]
@@ -252,7 +268,7 @@
 								"-",
 								[
 									{
-										"Ref": "AWS::StackName"
+										"Ref": "StackName"
 									},
 									"PrivateSubnet2"
 								]
@@ -287,12 +303,16 @@
 								"-",
 								[
 									{
-										"Ref": "AWS::StackName"
+										"Ref": "StackName"
 									},
 									"GwlbeSubnet2"
 								]
 							]
 						}
+					},
+					{
+						"Key": "fortigatecnf_subnet_type",
+						"Value": "endpoint"
 					}
 				]
 			}
@@ -308,7 +328,7 @@
 								"-",
 								[
 									{
-										"Ref": "AWS::StackName"
+										"Ref": "StackName"
 									},
 									"IGW"
 								]
@@ -361,7 +381,7 @@
 								"-",
 								[
 									{
-										"Ref": "AWS::StackName"
+										"Ref": "StackName"
 									},
 									"NatGW1"
 								]
@@ -391,7 +411,7 @@
 								"-",
 								[
 									{
-										"Ref": "AWS::StackName"
+										"Ref": "StackName"
 									},
 									"NatGW2"
 								]
@@ -415,7 +435,7 @@
 								"-",
 								[
 									{
-										"Ref": "AWS::StackName"
+										"Ref": "StackName"
 									},
 									"Public1RouteTable"
 								]
@@ -439,7 +459,7 @@
 								"-",
 								[
 									{
-										"Ref": "AWS::StackName"
+										"Ref": "StackName"
 									},
 									"Public2RouteTable"
 								]
@@ -463,7 +483,7 @@
 								"-",
 								[
 									{
-										"Ref": "AWS::StackName"
+										"Ref": "StackName"
 									},
 									"Private1RouteTable"
 								]
@@ -487,7 +507,7 @@
 								"-",
 								[
 									{
-										"Ref": "AWS::StackName"
+										"Ref": "StackName"
 									},
 									"Private2RouteTable"
 								]
@@ -511,7 +531,7 @@
 								"-",
 								[
 									{
-										"Ref": "AWS::StackName"
+										"Ref": "StackName"
 									},
 									"GwlbRouteTable"
 								]
@@ -535,7 +555,7 @@
 								"-",
 								[
 									{
-										"Ref": "AWS::StackName"
+										"Ref": "StackName"
 									},
 									"IgwRouteTable"
 								]
@@ -555,6 +575,32 @@
 				"DestinationCidrBlock": "0.0.0.0/0",
 				"GatewayId": {
 					"Ref": "InternetGateway"
+				}
+			}
+		},
+		"Route2": {
+			"Type": "AWS::EC2::Route",
+			"DependsOn": "NatGateway1",
+			"Properties": {
+				"RouteTableId": {
+					"Ref": "Private1RouteTable"
+				},
+				"DestinationCidrBlock": "0.0.0.0/0",
+				"NatGatewayId": {
+					"Ref": "NatGateway1"
+				}
+			}
+		},
+		"Route3": {
+			"Type": "AWS::EC2::Route",
+			"DependsOn": "NatGateway2",
+			"Properties": {
+				"RouteTableId": {
+					"Ref": "Private2RouteTable"
+				},
+				"DestinationCidrBlock": "0.0.0.0/0",
+				"NatGatewayId": {
+					"Ref": "NatGateway2"
 				}
 			}
 		},
@@ -637,5 +683,71 @@
 		}
 	},
 	"Outputs": {
+		"VPCID": {
+			"Value": {
+				"Ref": "VPCID"
+			},
+			"Description": "VPC ID, for use in workload and routemap templates"
+		},
+		"VPCCIDR": {
+			"Value": {
+				"Ref": "VPCCIDR"
+			},
+			"Description": "VPCCIDR, for use in workload and routemap templates"
+		},
+		"PublicSub1": {
+			"Value": {
+				"Ref": "PublicSub1"
+			},
+			"Description": "PublicSub1 ID, for use in workload and routemap templates"
+		},
+		"PublicSub2": {
+			"Value": {
+				"Ref": "PublicSub2"
+			},
+			"Description": "PublicSub2 ID, for use in workload and routemap templates"
+		},
+		"PrivateSub1": {
+			"Value": {
+				"Ref": "PrivateSub1"
+			},
+			"Description": "PrivateSub1 ID, for use in workload and routemap templates"
+		},
+		"PrivateSub2": {
+			"Value": {
+				"Ref": "PrivateSub2"
+			},
+			"Description": "PrivateSub2 ID, for use in workload and routemap templates"
+		},
+		"GwlbeSub1": {
+			"Value": {
+				"Ref": "GwlbeSub1"
+			},
+			"Description": "GwlbeSub1 ID, for use in workload and routemap templates"
+		},
+		"GwlbeSub2": {
+			"Value": {
+				"Ref": "GwlbeSub2"
+			},
+			"Description": "GwlbeSub2 ID, for use in workload and routemap templates"
+		},
+		"IgwRouteTable": {
+			"Value": {
+				"Ref": "IgwRouteTable"
+			},
+			"Description": "IgwRouteTable ID, for use in workload and routemap templates"
+		},
+		"Public1RouteTable": {
+			"Value": {
+				"Ref": "Public1RouteTable"
+			},
+			"Description": "Public1RouteTable ID, for use in workload and routemap templates"
+		},
+		"Public2RouteTable": {
+			"Value": {
+				"Ref": "Public2RouteTable"
+			},
+			"Description": "Public2RouteTable ID, for use in workload and routemap templates"
+		}
 	}
 }
