@@ -30,7 +30,7 @@ AWS Software-Defined Networking (SDN) is elastic, complex, and quite different t
 --TBD--
 
 ## AWS Reference Architecture Diagram
-![](./content/diagram1.png)
+![](./content/image-ref-diag1.png)
 
 ## Notes:
 
