@@ -117,14 +117,12 @@ For more examples of distributed and centralized models, please reference the ex
 
 # FortiGate CNF Terminology
 
---TBD--
-
 | Term      | Description |
 | ----------- | ----------- |
-| CNF Portal      | The Portal in which        |
-| CNF Instance   | A deployment of         |
-| Policy Set      | The Portal in which        |
-| Security Profile Group      | The Portal in which        |
+| CNF Portal      | The Portal in which you deploy CNF instances and manage policy sets      |
+| CNF Instance   | A deployment of CNF resources in an auto scale group in the region of your choice       |
+| Policy Set      | The group of FW rules, objects, and security profile groups that are assigned to one or many CNF Instance(s)        |
+| Security Profile Group      | A group of Layer 7 inspection profiles such as DNS filter, and known bad IP blocking        |
 
 
 # Task 1: Subscribe to FortiGate CNF in AWS Marketplace
@@ -256,6 +254,7 @@ Note: Currently logging to S3 and Syslog is what is available. Logging to remote
 
 # Task 5: Test traffic flows (distributed in + egress and centralized e-w + egress)
 
+--TBD--
 
 
 # Task 6: Providing Feedback
