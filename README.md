@@ -163,11 +163,11 @@ For more examples of distributed and centralized models, please reference the ex
 
 # Task 2: Onboard an AWS account to FortiGate CNF
 
-1.  In the FortiGate CNF Portal, navigate to AWS Accounts, then click New to start the add account wizard.
+1.  In the FortiGate CNF Portal, navigate to AWS Accounts, then click **New** to start the add account wizard.
 
 ![](./content/image-t2-1.png)
 
-2.  In a new browser tab, log into your AWS account and click on your IAM user name in the upper right corner. This will allow you to see and copy your AWS Account ID.
+2.  In a new browser tab, log into your AWS account and click on your **IAM user name in the upper right corner**. This will allow you to see and copy your AWS Account ID.
 
 ![](./content/image-t2-2.png)
 
@@ -187,7 +187,7 @@ For more examples of distributed and centralized models, please reference the ex
 
 ![](./content/image-t2-4.png)
 
-6.  Once the CloudFormation template has created successfully, you should see your account showing 'Success' in the AWS account page of FortiGate CNF.
+6.  Once the CloudFormation template has created successfully, you should see your account showing **Success** in the AWS account page of FortiGate CNF.
 
 ![](./content/image-t2-5.png)
 
@@ -196,39 +196,54 @@ For more examples of distributed and centralized models, please reference the ex
 
 # Task 3: Deploying CNF Instances and GWLBe endpoints
 
-1.  In the FortiGate CNF portal, navigate to CNF instances and click New.
+1.  In the FortiGate CNF portal, navigate to CNF instances and click **New**.
 
 ![](./content/image-t3-1.png)
 
-2.  Provide a name for the CNF instance, select **us-east-2** for the region for deployment, and select the S3 bucket created by CloudFormation for the logging destination. Then click Save. This will drop you back to the list of CNF instances while this is deployed in the background.
+2.  Provide a name for the CNF instance, select **us-east-2** for the region for deployment, select **Internal S3** for the log type, and select the **S3 bucket** created by CloudFormation for the logging destination. Then click **Save**. This will drop you back to the list of CNF instances while this is deployed in the background.
 
 ![](./content/image-t3-2.png)
 
 ![](./content/image-t3-3.png)
 
-3.  The CNF Instance should show up as **active after roughly 10 minutes** (Now is a great time for a break :) ). Then you can select and edit it to deploy endpoints and assign a policy set.
+3.  The CNF Instance should show up as **active after roughly 10 minutes** (Now is a great time for a break :) ). Then you can **select and edit** it to deploy endpoints and assign a policy set.
 
 ![](./content/image-t3-4.png)
 
 ![](./content/image-t3-5.png)
 
-4.  On the Configure Endpoints section of the wizard, click the New button. Then you can select the account, VPC, and subnet to deploy the VPC endpoint to. Repeat this step for all subnets in your architecture where a VPC endpoint should be deployed, then click the Next button.
+4.  On the Configure Endpoints section of the wizard, click the **New** button. Then you can select the account, VPC, then toggle the **Select from all subnets** to off (this filters the subnets to only show ones that are properly tagged), and the subnet to deploy the VPC endpoint to. Repeat this step for all subnets in the table below, then click the **Next** button.  Once all have been created, click **Next*.
+
+| VPC      | Subnet |
+| ----------- | ----------- |
+| Application-VPC      | Application-GwlbeSubnet1      |
+| Application-VPC      | Application-GwlbeSubnet2      |
+| Inspection-VPC      | Inspection-GwlbeSubnet1      |
+| Inspection-VPC      | Inspection-GwlbeSubnet2      |
 
 ![](./content/image-t3-6.png)
 
 ![](./content/image-t3-7.png)
 
-5.  On the Configure Policy Set section of the wizard, use the default 'allow_all' policy allow all traffic from a Layer 4 perspective and click Finalize to push that default policy. You should then see the list of CNF instances again.
-
 ![](./content/image-t3-8.png)
+
+5.  On the Configure Policy Set section of the wizard, use the default 'allow_all' policy to allow all traffic from a Layer 4 perspective and click **Finalize** to push that default policy. You should then see the list of CNF instances again.
 
 ![](./content/image-t3-9.png)
 
-6.  To validate all GWLBe endpoints have been deployed, edit the CNF instance and click Next to view the GWLBe endpoints on the Configure Endpoints section of the wizard.
+![](./content/image-t3-10.png)
 
-> ![](./content/image-t3-10.png)
+6.  To validate all GWLBe endpoints have been deployed and are active (takes ~5 mins), **select and edit** the CNF instance and click **Next** to view the GWLBe endpoints on the Configure Endpoints section of the wizard. Then click **Exit** to leave the CNF configuration wizard.
 
-7.  This concludes this section.
+> ![](./content/image-t3-11.png)
+
+7.  Log into your AWS Account and navigate to the **VPC Console > Endpoints**.  Each of the GWLBe endpoints you deployed in the FortiGate CNF Portal should be visible in your account.  Notice the tag name and value pairs assigned to the endpoints.
+
+> ![](./content/image-t3-12.png)
+
+9.  At this point in a normal environment, you would need to create ingress and VPC routes to direct traffic to the GWLBe endpoints that were created by FortiGate CNF for inspection.  However, for this workshop there is a Lambda function that is creating these routes for you to match the AWS Reference Architecture Diagram.
+
+8.  This concludes this section.
 
 
 # Task 4: Create a policy set and apply it to a FortiGate CNF Instance
