@@ -61,7 +61,7 @@ Availability zones (AZ) are multiple, isolated locations within each Region that
 
 Region, is a collection of multiple regional AZs in a geographic location. The collection of AZs in the same region are all interconnected via redundant, ultra-low-latency networks.
 
-All subnets within a VPC are able to reach each other with the default or intrinsic router within the VPC. All resources in a subnet use the intrinsic router as the default gateway. Each subnet must be associated with a VPC route table, which specifies the allowed routes for outbound traffic leaving the subnet.
+All subnets within a VPC are able to reach each other with the default or intrinsic router within the VPC. All resources in a subnet use the intrinsic router (1st host IP in each subnet) as the default gateway. Each subnet must be associated with a VPC route table, which specifies the allowed routes for outbound traffic leaving the subnet.
 
 An internet gateway (IGW) is a horizontally scaled, redundant, and highly available VPC component that allows communication between instances in your VPC and the internet. It therefore imposes no availability risks or bandwidth constraints on your network traffic.
 
@@ -171,7 +171,9 @@ For more examples of distributed and centralized models, please reference the ex
 
 ![](./content/image-t2-2.png)
 
-3.  In the FortiGate CNF Portal, provide your AWS account ID and select Launch CloudFormation Template. This will redirect you to the CloudFormation Console in your AWS account.
+3.  In the FortiGate CNF Portal, provide your AWS account ID and select Launch CloudFormation Template. This will redirect you to the CloudFormation Console in your AWS account i the us-west-2 region.
+
+**Note:** Your browser may block the popup window to launch the CloudFormation console.  Please check your browser for blocked popup notifications.
 
 ![](./content/image-t-3.png)
 
@@ -183,7 +185,7 @@ For more examples of distributed and centralized models, please reference the ex
 
     c.  Custom resources which kicks off automation on our managed accounts to complete onboarding the AWS account.
 
-5.  Please follow through the create stack wizard **without changing any of the parameter values**. Simply follow the steps outlined in the FortiGate CNF.
+5.  Please follow through the create stack wizard **without changing the region or any of the parameter values**. Simply follow the steps outlined in the FortiGate CNF Portal and click through the CloudFormation wizard.
 
 ![](./content/image-t2-4.png)
 
@@ -202,6 +204,16 @@ For more examples of distributed and centralized models, please reference the ex
 
 2.  Provide a name for the CNF instance, select **us-east-2** for the region for deployment, select **Internal S3** for the log type, and select the **S3 bucket** created by CloudFormation for the logging destination. Then click **Save**. This will drop you back to the list of CNF instances while this is deployed in the background.
 
+**Note:** FortiGate CNF is available in the following regions today.  Based on customer demand, more regions will be supported in the future.
+
+  * us-east-1 (N. Virginia)
+  * us-east-2 (Ohio)
+  * us-west-1 (N. California)
+  * us-west-1 (Oregon)
+  * eu-central-1 (Frankfurt)
+  * eu-west-1 (Ireland)
+  * ap-northeast-1 (Tokyo)
+
 ![](./content/image-t3-2.png)
 
 ![](./content/image-t3-3.png)
@@ -213,6 +225,8 @@ For more examples of distributed and centralized models, please reference the ex
 ![](./content/image-t3-5.png)
 
 4.  On the Configure Endpoints section of the wizard, click the **New** button. Then you can select the account, VPC, then toggle the **Select from all subnets** to off (this filters the subnets to only show ones that are properly tagged), and the subnet to deploy the VPC endpoint to. Repeat this step for all subnets in the table below, then click the **Next** button.  Once all have been created, click **Next*.
+
+**Note:** In order for FortiGate CNF to successfully create a GWLBe in a subnet, **the subnet must be properly tagged**.  The subnet needs a Tag ***Name = fortigatecnf_subnet_type*** and Tag ***Value = endpoint***. Otherwise you will see an error that the subnet ID is invalid.
 
 | VPC      | Subnet |
 | ----------- | ----------- |

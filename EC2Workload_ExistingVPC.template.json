@@ -1,6 +1,6 @@
 {
 	"AWSTemplateFormatVersion": "2010-09-09",
-	"Description": "(v5.0) AWS CFT to deploy a standalone Instance into an existing VPC",
+	"Description": "(v5.2) AWS CFT to deploy a standalone Instance into an existing VPC",
 	"Metadata": {
 		"AWS::CloudFormation::Interface": {
 			"ParameterGroups": [
@@ -220,8 +220,11 @@
 							[
 								"#!/bin/bash",
 								{
-									"Fn::Sub": "./root/webpage.sh app1 ${AWS::StackName}"
-								}
+									"Fn::Sub": " sudo bash /root/webpage.sh app1 ${StackName}"
+								},
+								"id=`curl 169.254.169.254/latest/meta-data/instance-id`",
+								"sudo adduser $id",
+								"echo $id:FORTInet123! | sudo chpasswd"
 							]
 						]
 					}
@@ -437,7 +440,7 @@
 						"Arn"
 					]
 				},
-				"LicenseType": "ftnt-aws-jam-web"
+				"LicenseType": "ftnt-aws-iday-web"
 			}
 		}
 	},

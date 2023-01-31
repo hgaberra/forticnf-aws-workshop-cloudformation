@@ -1,6 +1,6 @@
 {
 	"AWSTemplateFormatVersion": "2010-09-09",
-	"Description": "(v5.0) AWS master CFT to deploy a FortiGate CNF Immersion Day Environment",
+	"Description": "(v5.1) AWS master CFT to deploy a FortiGate CNF Immersion Day Environment",
 	"Parameters": {
 		"KeyName": {
 			"Type": "String",
@@ -100,7 +100,7 @@
 						"Fn::GetAtt": "Application.Outputs.PrivateSub1"
 					},
 					"InstanceIP": "10.1.3.10",
-					"PubliclyAvailable": "Yes",
+					"PubliclyAvailable": "No",
 					"CIDRForInstanceAccess": "0.0.0.0/0",
 					"KeyPair": {
 						"Ref": "KeyPair"
@@ -350,7 +350,7 @@
 				"Fn::Join": [
 					"",
 					[
-						"https://",
+						"http://",
 						{
 							"Fn::GetAtt": "PublicNLB1.Outputs.DNSName"
 						}
