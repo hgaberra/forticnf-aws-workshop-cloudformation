@@ -1,6 +1,6 @@
 {
 	"AWSTemplateFormatVersion": "2010-09-09",
-	"Description": "(v5.2) AWS CFT to deploy a standalone Instance into an existing VPC",
+	"Description": "(v5.3) AWS CFT to deploy a standalone Instance into an existing VPC",
 	"Metadata": {
 		"AWS::CloudFormation::Interface": {
 			"ParameterGroups": [
@@ -113,6 +113,26 @@
 				"true",
 				"false"
 			]
+		},
+		"TagEnv": {
+			"Type": "String",
+			"Description": "A unique tag value passed by the master template"
+		},
+		"TagAppId": {
+			"Type": "String",
+			"Description": "A unique tag value passed by the master template"
+		},
+		"TagAppRole": {
+			"Type": "String",
+			"Description": "A unique tag value passed by the master template"
+		},
+		"TagAppTier": {
+			"Type": "String",
+			"Description": "A unique tag value passed by the master template"
+		},
+		"TagSDNGroup": {
+			"Type": "String",
+			"Description": "A unique tag value passed by the master template"
 		}
 	},
 	"Mappings": {
@@ -210,6 +230,36 @@
 						"Key": "Name",
 						"Value": {
 							"Ref": "StackName"
+						}
+					},
+					{
+						"Key": "env",
+						"Value": {
+							"Ref": "TagEnv"
+						}
+					},
+					{
+						"Key": "app-id",
+						"Value": {
+							"Ref": "TagAppId"
+						}
+					},
+					{
+						"Key": "app-role",
+						"Value": {
+							"Ref": "TagAppRole"
+						}
+					},
+					{
+						"Key": "app-id",
+						"Value": {
+							"Ref": "TagAppTier"
+						}
+					},
+					{
+						"Key": "sdn-group",
+						"Value": {
+							"Ref": "TagSDNGroup"
 						}
 					}
 				],

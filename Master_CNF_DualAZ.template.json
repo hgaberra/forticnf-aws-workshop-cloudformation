@@ -1,11 +1,11 @@
 {
 	"AWSTemplateFormatVersion": "2010-09-09",
-	"Description": "(v5.1) AWS master CFT to deploy a FortiGate CNF Immersion Day Environment",
+	"Description": "(v5.2) AWS master CFT to deploy a FortiGate CNF Immersion Day Environment",
 	"Parameters": {
 		"KeyName": {
 			"Type": "String",
 			"Description": "Name for the KeyName used to SSH into EC2 instances",
-			"Default": "kp-poc-common"
+			"Default": "workshop-keypair"
 		}
 	},
 	"Resources": {
@@ -104,7 +104,12 @@
 					"CIDRForInstanceAccess": "0.0.0.0/0",
 					"KeyPair": {
 						"Ref": "KeyPair"
-					}
+					},
+					"TagEnv": "prod",
+					"TagAppId": "ause2-pwf-wrk1",
+					"TagAppRole": "web",
+					"TagAppTier": "frontend",
+					"TagSDNGroup": "group1"
 				}
 			}
 		},
@@ -130,7 +135,12 @@
 					"CIDRForInstanceAccess": "0.0.0.0/0",
 					"KeyPair": {
 						"Ref": "KeyPair"
-					}
+					},
+					"TagEnv": "prod",
+					"TagAppId": "ause2-pwf-wrk1",
+					"TagAppRole": "web",
+					"TagAppTier": "frontend",
+					"TagSDNGroup": "group1"
 				}
 			}
 		},
@@ -156,7 +166,12 @@
 					"CIDRForInstanceAccess": "0.0.0.0/0",
 					"KeyPair": {
 						"Ref": "KeyPair"
-					}
+					},
+					"TagEnv": "prod",
+					"TagAppId": "ause2-pauthb-wrk1",
+					"TagAppRole": "auth",
+					"TagAppTier": "backend",
+					"TagSDNGroup": "group3"
 				}
 			}
 		},
@@ -182,7 +197,43 @@
 					"CIDRForInstanceAccess": "0.0.0.0/0",
 					"KeyPair": {
 						"Ref": "KeyPair"
-					}
+					},
+					"TagEnv": "prod",
+					"TagAppId": "ause2-pweb-wrk1",
+					"TagAppRole": "web",
+					"TagAppTier": "backend",
+					"TagSDNGroup": "group2"
+				}
+			}
+		},
+		"WrkInstance2": {
+			"Type": "AWS::CloudFormation::Stack",
+			"Properties": {
+				"TemplateURL": {
+					"Fn::Sub": "https://hacorp-us-east-1.s3.amazonaws.com/forticnf-aws-workshop-cloudformation/EC2Workload_ExistingVPC.template.json"
+				},
+				"Parameters": {
+					"StackName": "WrkInstance2",
+					"VPCID": {
+						"Fn::GetAtt": "Workload.Outputs.VPCID"
+					},
+					"VPCCIDR": {
+						"Fn::GetAtt": "Workload.Outputs.VPCCIDR"
+					},
+					"Subnet": {
+						"Fn::GetAtt": "Workload.Outputs.PrivateSub2"
+					},
+					"InstanceIP": "10.2.2.10",
+					"PubliclyAvailable": "No",
+					"CIDRForInstanceAccess": "0.0.0.0/0",
+					"KeyPair": {
+						"Ref": "KeyPair"
+					},
+					"TagEnv": "prod",
+					"TagAppId": "ause2-papib-wrk1",
+					"TagAppRole": "api",
+					"TagAppTier": "backend",
+					"TagSDNGroup": "group2"
 				}
 			}
 		},
@@ -210,7 +261,8 @@
 					},
 					"Target2": {
 						"Fn::GetAtt": "AppInstance2.Outputs.InstanceID"
-					}
+					},
+					"Encrypted": "Yes"
 				}
 			}
 		},
@@ -358,6 +410,20 @@
 				]
 			},
 			"Description": "URL for App1"
+		},
+		"EncryptedURLforApp1": {
+			"Value": {
+				"Fn::Join": [
+					"",
+					[
+						"https://",
+						{
+							"Fn::GetAtt": "PublicNLB1.Outputs.DNSName"
+						}
+					]
+				]
+			},
+			"Description": "Encrypted URL for App1"
 		}
 	}
 }

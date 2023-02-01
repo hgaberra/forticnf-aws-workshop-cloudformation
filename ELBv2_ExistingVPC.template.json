@@ -1,6 +1,6 @@
 {
 	"AWSTemplateFormatVersion": "2010-09-09",
-	"Description": "(v5.0) AWS CFT to deploy an ELBv2 Load Balancer into an existing VPC",
+	"Description": "(v5.2) AWS CFT to deploy an ELBv2 Load Balancer into an existing VPC",
 	"Metadata": {
 		"AWS::CloudFormation::Interface": {
 			"ParameterGroups": [
@@ -71,6 +71,15 @@
 		"Target2": {
 			"Type": "String",
 			"Description": "Instance ID of second target"
+		},
+		"Encrypted": {
+			"Type": "String",
+			"Default": "Yes",
+			"Description": "Select if the load balancer will pass traffic over standrd HTTPS port",
+			"AllowedValues": [
+				"Yes",
+				"No"
+			]
 		}
 	},
 	"Mappings": {
@@ -81,8 +90,13 @@
 				"Protocol": "HTTP"
 			},
 			"network": {
-				"Name": "ALB",
+				"Name": "NLB",
 				"Port": 80,
+				"Protocol": "TCP"
+			},
+			"encryptednetwork": {
+				"Name": "NLB",
+				"Port": 443,
 				"Protocol": "TCP"
 			}
 		}
@@ -94,6 +108,14 @@
 					"Ref": "PubliclyAvailable"
 				},
 				"No"
+			]
+		},
+		"EncryptedTraffic": {
+			"Fn::Equals": [
+				{
+					"Ref": "Encrypted"
+				},
+				"Yes"
 			]
 		}
 	},
@@ -126,30 +148,6 @@
 					{
 						"Key": "load_balancing.cross_zone.enabled",
 						"Value": "true"
-					}
-				],
-				"Tags": [
-					{
-						"Key": "Name",
-						"Value": {
-							"Fn::Join": [
-								"-",
-								[
-									{
-										"Ref": "StackName"
-									},
-									{
-										"Fn::FindInMap": [
-											"ELBv2Info",
-											{
-												"Ref": "ELBv2Type"
-											},
-											"Name"
-										]
-									}
-								]
-							]
-						}
 					}
 				]
 			}
@@ -238,36 +236,79 @@
 							]
 						}
 					}
-				],
-				"Tags": [
-					{
-						"Key": "Name",
-						"Value": {
-							"Fn::Join": [
-								"-",
-								[
-									{
-										"Ref": "StackName"
-									},
-									{
-										"Fn::FindInMap": [
-											"ELBv2Info",
-											{
-												"Ref": "ELBv2Type"
-											},
-											"Protocol"
-										]
-									},
-									{
-										"Fn::FindInMap": [
-											"ELBv2Info",
-											{
-												"Ref": "ELBv2Type"
-											},
-											"Port"
-										]
-									}
+				]
+			}
+		},
+		"EncryptedTargetGroup": {
+			"Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+			"Condition": "EncryptedTraffic",
+			"Properties": {
+				"Name": {
+					"Fn::Join": [
+						"-",
+						[
+							{
+								"Ref": "StackName"
+							},
+							{
+								"Fn::FindInMap": [
+									"ELBv2Info",
+									"encryptednetwork",
+									"Protocol"
 								]
+							},
+							{
+								"Fn::FindInMap": [
+									"ELBv2Info",
+									"encryptednetwork",
+									"Port"
+								]
+							}
+						]
+					]
+				},
+				"Port": {
+					"Fn::FindInMap": [
+						"ELBv2Info",
+						"encryptednetwork",
+						"Port"
+					]
+				},
+				"Protocol": {
+					"Fn::FindInMap": [
+						"ELBv2Info",
+						"encryptednetwork",
+						"Protocol"
+					]
+				},
+				"VpcId": {
+					"Ref": "VPCID"
+				},
+				"HealthCheckPort": "443",
+				"HealthCheckProtocol": "TCP",
+				"TargetType": "instance",
+				"Targets": [
+					{
+						"Id": {
+							"Ref": "Target1"
+						},
+						"Port": {
+							"Fn::FindInMap": [
+								"ELBv2Info",
+								"encryptednetwork",
+								"Port"
+							]
+						}
+					},
+					{
+						"Id": {
+							"Ref": "Target2"
+						},
+						"Port": {
+							"Fn::FindInMap": [
+								"ELBv2Info",
+								"encryptednetwork",
+								"Port"
 							]
 						}
 					}
@@ -303,6 +344,37 @@
 						{
 							"Ref": "ELBv2Type"
 						},
+						"Protocol"
+					]
+				}
+			}
+		},
+		"EncryptedListener": {
+			"Type": "AWS::ElasticLoadBalancingV2::Listener",
+			"Condition": "EncryptedTraffic",
+			"Properties": {
+				"DefaultActions": [
+					{
+						"Type": "forward",
+						"TargetGroupArn": {
+							"Ref": "EncryptedTargetGroup"
+						}
+					}
+				],
+				"LoadBalancerArn": {
+					"Ref": "ELBv2"
+				},
+				"Port": {
+					"Fn::FindInMap": [
+						"ELBv2Info",
+						"encryptednetwork",
+						"Port"
+					]
+				},
+				"Protocol": {
+					"Fn::FindInMap": [
+						"ELBv2Info",
+						"encryptednetwork",
 						"Protocol"
 					]
 				}
