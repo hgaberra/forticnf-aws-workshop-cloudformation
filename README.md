@@ -374,7 +374,7 @@ Here is the list of dynamic objects to create:
 9. Now you can create the policies listed below to control all directions of traffic within the example environment. **Click New** and create the policies listed below:
 
 | Name | Source | Destination | Service | Action | Log Allowed Traffic |
-| - | - | - | - | - |
+| - | - | - | - | - | - |
 | BlockList-Inbound | Russia | all | ALL | DENY | All Sessions |
 | BlockList-Outbound | all | Russia | ALL | DENY | All Sessions |
 | HTTPS-Inbound | UnitedStates | RFC-1918 | HTTPS | ACCEPT | All Sessions |
