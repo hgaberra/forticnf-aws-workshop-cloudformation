@@ -399,14 +399,13 @@ Here is the list of dynamic objects to create:
 
 In this section you will validate that the policy set is controlling traffic as intended. Below is the overall architecture of the environment.
 
-![](./content/image-ref-diag1.png)
-
-
 We will look into these specific traffic flows:
   * Distributed Ingress
   * Distributed Egress
   * Centralized Egress
   * Centralized East West
+
+![](./content/image-ref-diag1.png)
 
 
 # Distributed Ingress
@@ -470,10 +469,11 @@ For this traffic flow we will focus on the Application VPC. Distributed egress i
 
 2.  Login to the instance with the instance ID as the username and **Fortinet123!** as the password. Then run the commands below to test traffic:
 
-    ping 8.8.8.8
-    curl http://ipinfo.io
-    curl https://ipinfo.io
-
+```
+ping 8.8.8.8
+curl http://ipinfo.io
+curl https://ipinfo.io
+```
 **Note:** You are now only allowing HTTPS outbound to one FQDN and ICMP to any public IP within the United States!
 
 ![](./content/image-t5-5.png)
