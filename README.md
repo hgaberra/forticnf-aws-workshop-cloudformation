@@ -397,7 +397,86 @@ Here is the list of dynamic objects to create:
 
 # Task 5: Test traffic flows (distributed in + egress and centralized e-w + egress)
 
---TBD--
+In this section you will validate that the policy set is controlling traffic as intended. Below is the overall architecture of the environment.
+
+![](./content/image-ref-diag1.png)
+
+
+We will look into these specific traffic flows:
+  * Distributed Ingress
+  * Distributed Egress
+  * Centralized Egress
+  * Centralized East West
+
+
+# Distributed Ingress
+
+For this traffic flow we will focus on the Application VPC. Distributed ingress is commonly used when there is a need to inspect traffic for a VPC that is directly accessible with an attached IGW and resources with a public Elastic IP (EIP) or behind a public load balancer (ie ALB, NLB, etc). The benefit of this design is that traffic does not need to traverse additional AWS networking components for inspection so each VPC is isolated from others. The caveat to consider is that each VPC would need a directly attached IGW and resources such as load balancers, NAT GWs, etc that have additional cost.
+
+![](./content/image-dist-ingress-diag1.png)
+
+**Step 1:** An inbound connection starts with an external user initiating a connection to a public resource such as a public NLB. The public NLB has a DNS record that resolves to a public IP for one of the NLB's Elastic Network Interface (ENI) in either public subnet. The first packet (ie TCP SYN) will then be seen at the IGW attached to the VPC where the public NLB is deployed. Since there is a Ingress route table assigned to the IGW, traffic destined to either public subnet will be sent to the GWLBe endpoint in the same AZ.
+
+**Note:** The IGW will perform destination NAT to change the public IP of the NLB to the private IP of the NLB ENI.
+
+**Step 2:** The traffic is received at the GWLBe endpoint which then routes the traffic to the associated GWLB ENI in the same AZ in the managed Fortinet AWS account/VPC. This is done behind the scene using AWS Private Link.
+
+**Step 3:** The traffic is received at the GWLB ENI and is then encapsulated in a GENEVE tunnel and routed to one of the instances in the FortiGate CNF auto scale group for traffic inspection. Post inspection, if the traffic is allowed, the instance will hairpin the traffic back to the same GWLB ENI over GENEVE. Then the GWLB ENI will hairpin the traffic back to the same GWLBe endpoint.
+
+**Step 4:** The GWLBe endpoint will then route the inspected traffic to the intrinsic router. The intrinsic router will route traffic directly to the NLB's ENI as specified in the VPC route table assigned to the subnet.
+
+**Step 5:** The NLB will send traffic to a healthy target, in either AZ since cross zone load balancing is enabled.
+
+**Note:** The NLB will perform destination NAT to change the private IP to that of the healthy target.
+
+**Step 6:** The web server will receive the traffic and respond. The return traffic will flow these steps in reverse.
+
+1.  To test out this flow navigate to the AWS CloudFormation console and **toggle the view nested button to off** > then select the stack name > and on the details pane select the outputs tab. You should see the output for **URLforApp1**. Click on the value for that output to check that App1 is no longer reachable now. Click on the value for the output **EncryptedURLforApp1** and you will see the self-signed certificate warning. Once you accept the warning, you will see the test web page.
+
+**Note:** You are now only allowing HTTPS inbound to your environment that is sourced from a public IP within the United States!
+
+![](./content/image-t5-1.png)
+
+![](./content/image-t5-2.png)
+
+
+# Distributed Egress
+
+For this traffic flow we will focus on the Application VPC. Distributed egress is commonly used when there is a need to inspect traffic for a VPC that has an attached IGW and resources with a public Elastic IP (EIP) or that are behind a NAT GW. The benefit of this design is that traffic does not need to traverse additional AWS networking components for inspection so each VPC is isolated from others. The caveat to consider is that each VPC would need a directly attached IGW and resources such as NAT GWs that have additional cost.
+
+![](./content/image-dist-egress-diag1.png)
+
+**Step 1:** An outbound connection starts with a private EC2 instance initiating a connection to a public resource. The first packet (ie TCP SYN) will be routed to the intrinsic router which will route traffic to the NAT GW in the same AZ, as configured in the assigned VPC route table. The EC2 instance has a default route, received via DHCP, that points to the first host IP in the subnet which is the intrinsic router.
+
+**Step 2:** The traffic is received at the NAT GW ENI which then routes the traffic to the associated GWLBe endpoint in the same AZ, as configured in the assigned VPC route table.
+
+**Note:** The NAT GW will source NAT the traffic to the private IP assigned to its ENI.
+
+**Step 3:**  The traffic is received at the GWLBe endpoint which then routes the traffic to the associated GWLB ENI in the same AZ in the managed Fortinet AWS account/VPC. This is done behind the scene using AWS Private Link.
+
+**Step 4:** The traffic is received at the GWLB ENI and is then encapsulated in a GENEVE tunnel and routed to one of the instances in the FortiGate CNF auto scale group for traffic inspection. Post inspection, if the traffic is allowed, the instance will hairpin the traffic back to the same GWLB ENI over GENEVE. Then the GWLB ENI will hairpin the traffic back to the same GWLBe endpoint.
+
+**Step 5:** The GWLBe endpoint will then route the inspected traffic to the intrinsic router. The intrinsic router will route traffic directly to the IGW as specified in the VPC route table assigned to the subnet.
+
+**NOTE:** The IGW will source NAT the traffic to the public EIP assigned to the NAT GW ENI.
+
+**Step 6:** The destination will receive the traffic and respond. The return traffic will be intercepted at the IGW and routed to the GWLBe endpoint. Then the return traffic follow these steps in reverse.
+
+1.  To test out this flow navigate to the **AWS EC2 console and go to Instances > Instances**. Then select either **AppInstance** and click Connect > EC2 serial console. Copy the instance ID as this will be the username and click connect.
+
+![](./content/image-t5-3.png)
+
+![](./content/image-t5-4.png)
+
+2.  Login to the instance with the instance ID as the username and **Fortinet123!** as the password. Then run the commands below to test traffic:
+
+    ping 8.8.8.8
+    curl http://ipinfo.io
+    curl https://ipinfo.io
+
+**Note:** You are now only allowing HTTPS outbound to one FQDN and ICMP to any public IP within the United States!
+
+![](./content/image-t5-5.png)
 
 
 # Task 6: Providing Feedback
