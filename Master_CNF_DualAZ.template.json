@@ -1,6 +1,6 @@
 {
 	"AWSTemplateFormatVersion": "2010-09-09",
-	"Description": "(v5.2) AWS master CFT to deploy a FortiGate CNF Immersion Day Environment",
+	"Description": "(v5.4) AWS master CFT to deploy a FortiGate CNF Immersion Day Environment",
 	"Parameters": {
 		"KeyName": {
 			"Type": "String",
@@ -14,6 +14,17 @@
 			"Properties": {
 				"KeyName": {
 					"Ref": "KeyName"
+				}
+			}
+		},
+		"WorkshopUser": {
+			"Type": "AWS::CloudFormation::Stack",
+			"Properties": {
+				"TemplateURL": {
+					"Fn::Sub": "https://hacorp-us-east-1.s3.amazonaws.com/forticnf-aws-workshop-cloudformation/IAM_User.template.json"
+				},
+				"Parameters": {
+					"StackName": "WorkshopUser"
 				}
 			}
 		},
@@ -424,6 +435,23 @@
 				]
 			},
 			"Description": "Encrypted URL for App1"
+		},
+		"AWSConsoleUsername": {
+			"Description": "Username for login to AWS Console",
+			"Value": {
+				"Fn::GetAtt": "WorkshopUser.Outputs.AWSConsoleUsername"
+			}
+		},
+		"AWSConsolePassword": {
+			"Description": "Password for login to AWS Console",
+			"Value": "FORTInet123!"
+		},
+		"AWSConsoleUrl": {
+			"Description": "Url for login to AWS Console",
+			"Value": {
+				"Fn::GetAtt": "WorkshopUser.Outputs.AWSConsoleUrl"
+			}
+
 		}
 	}
 }

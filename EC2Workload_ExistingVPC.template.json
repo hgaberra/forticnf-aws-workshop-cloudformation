@@ -1,6 +1,6 @@
 {
 	"AWSTemplateFormatVersion": "2010-09-09",
-	"Description": "(v5.3) AWS CFT to deploy a standalone Instance into an existing VPC",
+	"Description": "(v5.4) AWS CFT to deploy a standalone Instance into an existing VPC",
 	"Metadata": {
 		"AWS::CloudFormation::Interface": {
 			"ParameterGroups": [
@@ -157,10 +157,28 @@
 				"GroupDescription": "InstanceSecGrp",
 				"SecurityGroupIngress": [
 					{
-						"Description": "Allow remote access to Instance",
-						"IpProtocol": "-1",
-						"FromPort": "0",
-						"ToPort": "65535",
+						"Description": "Allow remote access to Instance on ICMP",
+						"IpProtocol": "1",
+						"FromPort": "-1",
+						"ToPort": "-1",
+						"CidrIp": {
+							"Ref": "CIDRForInstanceAccess"
+						}
+					},
+					{
+						"Description": "Allow remote access to Instance on HTTP",
+						"IpProtocol": "6",
+						"FromPort": "80",
+						"ToPort": "80",
+						"CidrIp": {
+							"Ref": "CIDRForInstanceAccess"
+						}
+					},
+					{
+						"Description": "Allow remote access to Instance on HTTPs",
+						"IpProtocol": "6",
+						"FromPort": "443",
+						"ToPort": "443",
 						"CidrIp": {
 							"Ref": "CIDRForInstanceAccess"
 						}

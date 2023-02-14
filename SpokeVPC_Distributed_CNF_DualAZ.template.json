@@ -1,6 +1,6 @@
 {
 	"AWSTemplateFormatVersion": "2010-09-09",
-	"Description": "(v5.1) Deploy a spoke VPC for a FortiGate CNF design with 6 subnets (Public, Private, Gwlbe) across 2 Availability Zones.",
+	"Description": "(v5.0) Deploy a spoke VPC for a FortiGate CNF design with 6 subnets (Public, Private, Gwlbe) across 2 Availability Zones.",
 	"Metadata": {
 		"AWS::CloudFormation::Interface": {
 			"ParameterGroups": [
@@ -387,10 +387,6 @@
 								]
 							]
 						}
-					},
-					{
-						"Key": "sdn-group",
-						"Value": "group1"
 					}
 				]
 			}
@@ -421,10 +417,6 @@
 								]
 							]
 						}
-					},
-					{
-						"Key": "sdn-group",
-						"Value": "group1"
 					}
 				]
 			}
