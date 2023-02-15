@@ -1,6 +1,6 @@
 {
 	"AWSTemplateFormatVersion": "2010-09-09",
-	"Description": "(v5.4) AWS CFT to deploy a standalone Instance into an existing VPC",
+	"Description": "(v5.5) AWS CFT to deploy a standalone Instance into an existing VPC",
 	"Metadata": {
 		"AWS::CloudFormation::Interface": {
 			"ParameterGroups": [
@@ -269,7 +269,7 @@
 						}
 					},
 					{
-						"Key": "app-id",
+						"Key": "app-tier",
 						"Value": {
 							"Ref": "TagAppTier"
 						}
