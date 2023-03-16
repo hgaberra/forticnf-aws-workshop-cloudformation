@@ -1,6 +1,6 @@
 {
 	"AWSTemplateFormatVersion": "2010-09-09",
-	"Description": "(v5.3) AWS CFT to create a workshop user and related IAM content",
+	"Description": "(v5.4) AWS CFT to create a workshop user and related IAM content",
 	"Metadata": {
 		"AWS::CloudFormation::Interface": {
 			"ParameterGroups": [
@@ -128,10 +128,10 @@
 									]
 								},
 								"DateGreaterThan": {
-									"aws:CurrentTime": "2023-02-01T00:00:00Z"
+									"aws:CurrentTime": "2023-03-01T00:00:00Z"
 								},
 								"DateLessThan": {
-									"aws:CurrentTime": "2023-02-16T23:59:59Z"
+									"aws:CurrentTime": "2023-03-31T23:59:59Z"
 								}
 							}
 						},
@@ -147,10 +147,10 @@
 							"Resource": "*",
 							"Condition": {
 								"DateGreaterThan": {
-									"aws:CurrentTime": "2023-02-01T00:00:00Z"
+									"aws:CurrentTime": "2023-03-01T00:00:00Z"
 								},
 								"DateLessThan": {
-									"aws:CurrentTime": "2023-02-16T23:59:59Z"
+									"aws:CurrentTime": "2023-03-31T23:59:59Z"
 								}
 							}
 						},
@@ -168,10 +168,10 @@
 									]
 								},
 								"DateGreaterThan": {
-									"aws:CurrentTime": "2023-02-01T00:00:00Z"
+									"aws:CurrentTime": "2023-03-01T00:00:00Z"
 								},
 								"DateLessThan": {
-									"aws:CurrentTime": "2023-02-16T23:59:59Z"
+									"aws:CurrentTime": "2023-03-31T23:59:59Z"
 								}
 							}
 						}

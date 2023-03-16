@@ -1,6 +1,6 @@
 {
 	"AWSTemplateFormatVersion": "2010-09-09",
-	"Description": "(v5.9) AWS CFT to deploy a standalone Instance into an existing VPC",
+	"Description": "(v5.8) AWS CFT to deploy a standalone Instance into an existing VPC",
 	"Metadata": {
 		"AWS::CloudFormation::Interface": {
 			"ParameterGroups": [
@@ -31,7 +31,8 @@
 						"CIDRForInstanceAccess",
 						"KeyPair",
 						"EncryptVolumes",
-						"PubliclyAvailable"
+						"PubliclyAvailable",
+						"DNSName"
 					]
 				},
 				{
@@ -80,6 +81,10 @@
 				"Yes",
 				"No"
 			]
+		},
+		"DNSName": {
+			"Type": "String",
+			"Description": "DNS name to target for scans"
 		},
 		"InstanceType": {
 			"Type": "String",
@@ -293,7 +298,27 @@
 								"id=`curl 169.254.169.254/latest/meta-data/instance-id`",
 								"sudo adduser $id",
 								"echo $id:FORTInet123! | sudo chpasswd",
-								"#sudo usermod -aG sudo $id"
+								"#sudo usermod -aG sudo $id",
+								"sudo rm /home/ubuntu/cronjob*-output.log",
+								"cd /home/ubuntu/nikto/program",
+								"echo '#!/bin/bash' >> run-nikto.sh",
+								"echo '' >> run-nikto.sh",
+								"echo 'cd /home/ubuntu/nikto/program' >> run-nikto.sh",
+								"echo 'sudo rm nikto_http_*' >> run-nikto.sh",
+								"echo '' >> run-nikto.sh",
+								"echo '### only interesting attack tests' >> run-nikto.sh",
+								{
+									"Fn::Sub": "echo 'sudo perl nikto.pl -host http://${DNSName} -maxtime 120 -Format txt -output . -Display V -Tuning x1235670a | sudo tee run-nikto.log' >> run-nikto.sh"
+								},
+								"echo '' >> run-nikto.sh",
+								"echo '### default run all tests' >> run-nikto.sh",
+								{
+									"Fn::Sub": "echo '#sudo perl nikto.pl -host http://${DNSName} -maxtime 120 -Format txt -output . -Display V | sudo tee run-nikto.log' >> run-nikto.sh"
+								},
+								"echo '' >> run-nikto.sh",
+								"crontab -l > /tmp/tmpcrontab",
+								"echo '*/5 * * * * /home/ubuntu/nikto/program/run-nikto.sh' >> /tmp/tmpcrontab",
+								"crontab /tmp/tmpcrontab"
 							]
 						]
 					}
@@ -509,7 +534,7 @@
 						"Arn"
 					]
 				},
-				"LicenseType": "ftnt-aws-iday-web"
+				"LicenseType": "ftnt-aws-iday-nikto"
 			}
 		}
 	},

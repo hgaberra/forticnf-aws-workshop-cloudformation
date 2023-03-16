@@ -1,6 +1,6 @@
 {
 	"AWSTemplateFormatVersion": "2010-09-09",
-	"Description": "(v5.9) AWS CFT to deploy a standalone Instance into an existing VPC",
+	"Description": "(v5.8) AWS CFT to deploy a standalone Instance into an existing VPC",
 	"Metadata": {
 		"AWS::CloudFormation::Interface": {
 			"ParameterGroups": [
@@ -293,7 +293,10 @@
 								"id=`curl 169.254.169.254/latest/meta-data/instance-id`",
 								"sudo adduser $id",
 								"echo $id:FORTInet123! | sudo chpasswd",
-								"#sudo usermod -aG sudo $id"
+								"#sudo usermod -aG sudo $id",
+								"crontab -l > /tmp/tmpcrontab",
+								"echo '*/10 * * * * curl -kv https://secure.eicar.org/eicar.com' >> /tmp/tmpcrontab",
+								"crontab /tmp/tmpcrontab"
 							]
 						]
 					}
@@ -509,7 +512,7 @@
 						"Arn"
 					]
 				},
-				"LicenseType": "ftnt-aws-iday-web"
+				"LicenseType": "ftnt-aws-iday-web-tgen"
 			}
 		}
 	},

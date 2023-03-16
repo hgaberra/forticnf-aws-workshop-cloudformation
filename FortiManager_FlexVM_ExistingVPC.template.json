@@ -1,0 +1,840 @@
+{
+	"AWSTemplateFormatVersion": "2010-09-09",
+	"Description": "(v6.7) AWS CFT to deploy a standalone FortiManager into an existing VPC",
+	"Metadata": {
+		"AWS::CloudFormation::Interface": {
+			"ParameterGroups": [
+				{
+					"Label": {
+						"default": "Nested Stack Name"
+					},
+					"Parameters": [
+						"StackName"
+					]
+				},
+				{
+					"Label": {
+						"default": "VPC Configuration"
+					},
+					"Parameters": [
+						"VPCID",
+						"VPCCIDR",
+						"Subnet"
+					]
+				},
+				{
+					"Label": {
+						"default": "FortiManager Instance Configuration"
+					},
+					"Parameters": [
+						"InstanceType",
+						"CIDRForInstanceAccess",
+						"KeyPair",
+						"EncryptVolumes",
+						"PubliclyAvailable",
+						"FortiManagerVersion",
+						"LicenseType",
+						"FortiManagerLicenseToken"
+					]
+				},
+				{
+					"Label": {
+						"default": "FortiManager Interface IP Configuration"
+					},
+					"Parameters": [
+						"FortiManagerIP"
+					]
+				}
+			]
+		}
+	},
+	"Parameters": {
+		"StackName": {
+			"Type": "String",
+			"Description": "A unique stack name passed by the master template"
+		},
+		"VPCID": {
+			"Type": "AWS::EC2::VPC::Id",
+			"Description": "Select the VPC to use"
+		},
+		"VPCCIDR": {
+			"Type": "String",
+			"Default": "10.0.0.0/16",
+			"Description": "Provide a network CIDR for the VPC",
+			"AllowedPattern": "^(([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5]){1}(\\/([0-9]|[1-2][0-9]|3[0-2]))?$",
+			"ConstraintDescription": "must be a valid CIDR block format."
+		},
+		"Subnet": {
+			"Type": "AWS::EC2::Subnet::Id",
+			"Description": "Select the subnet to deploy the FortiManager into"
+		},
+		"FortiManagerIP": {
+			"Type": "String",
+			"Default": "10.0.1.10/24",
+			"Description": "Provide the IP address in CIDR form for the FortiManager to use",
+			"AllowedPattern": "^(([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5]){1}(\\/([0-9]|[1-2][0-9]|3[0-2]))?$",
+			"ConstraintDescription": "must be a valid CIDR block format."
+		},
+		"PubliclyAvailable": {
+			"Type": "String",
+			"Default": "Yes",
+			"Description": "Select if the FMG will have a EIP to be publicly available or not.  *** If you select No, then an S3 endpoint needs to be deployed and reachable from the subnet the FortiManager is in to successfully bootstrap.  Also, PAYG licensed instances require internet access to register with FortiCare successfully. ***",
+			"AllowedValues": [
+				"Yes",
+				"No"
+			]
+		},
+		"InstanceType": {
+			"Type": "String",
+			"Default": "m5.2xlarge",
+			"Description": "Select the instance type for the FortiManager.  *** If using PAYG2Devices for LicenseType, you can only use up to a m5.xlarge ***",
+			"AllowedValues": [
+				"m5.large",
+				"m5.xlarge",
+				"m5.2xlarge",
+				"m5.4xlarge",
+				"m5.8xlarge",
+				"m5.12xlarge",
+				"m5.16xlarge",
+				"m5.24xlarge"
+			]
+		},
+		"CIDRForInstanceAccess": {
+			"Type": "String",
+			"Default": "0.0.0.0/0",
+			"Description": "Provide a network CIDR from which the FortiManager instance will be accessed"
+		},
+		"KeyPair": {
+			"Type": "AWS::EC2::KeyPair::KeyName",
+			"Description": "Select a keypair to associate with the FortiManager"
+		},
+		"EncryptVolumes": {
+			"Type": "String",
+			"Default": "true",
+			"Description": "Select 'true' to encrypt the FortiManager instances OS and Log volumes with your account's KMS default master key for EBS.  Otherwise select false to leave unencrypted",
+			"AllowedValues": [
+				"true",
+				"false"
+			]
+		},
+		"FortiManagerVersion": {
+			"Type": "String",
+			"Default": "7.2.x",
+			"Description": "Select the verion of FortiOS to use (latest GA AMI will be used)",
+			"AllowedValues": [
+				"6.4.x",
+				"7.0.x",
+				"7.2.x"
+			]
+		},
+		"LicenseType": {
+			"Type": "String",
+			"Default": "BYOL",
+			"Description": "Select the license type for the FortiManager",
+			"AllowedValues": [
+				"BYOL",
+				"PAYG2Devices",
+				"PAYG10Devices",
+				"PAYG30Devices",
+				"PAYG100Devices",
+				"PAYG500Devices"
+			]
+		},
+		"FortiManagerLicenseToken": {
+			"Type": "String",
+			"Description": "[BYOL Only, leave blank for PAYG] Provide the FlexVM token for the FortiManager (ie 123456789ABCDEFGHIJK)"
+		}
+	},
+	"Mappings": {
+		"FortiOSAMISearchString": {
+			"6.4.x": {
+				"BYOL": "FortiManager VM64-AWS *(6.4.*)*|os40mk0fw6472m8ak2lnzp4s",
+				"PAYG2Devices": "FortiManager VM64-AWSONDEMAND *(6.4.*)*|5j3m869sh84tixvmg9br26hkn",
+				"PAYG10Devices": "FortiManager VM64-AWSONDEMAND *(6.4.*)*|691k7ni0x5sbcj3reejxw3cy1",
+				"PAYG30Devices": "FortiManager VM64-AWSONDEMAND *(6.4.*)*|8gmpxt177zhq1vhh32l7o69wf",
+				"PAYG100Devices": "FortiManager VM64-AWSONDEMAND *(6.4.*)*|d3o35cw8hzusqeiv83jl1xuwb",
+				"PAYG500Devices": "FortiManager VM64-AWSONDEMAND *(6.4.*)*|e5s6s9r3hgizwpe9tavoxwkzv"
+			},
+			"7.0.x": {
+				"BYOL": "FortiManager VM64-AWS *(7.0.*)*|os40mk0fw6472m8ak2lnzp4s",
+				"PAYG2Devices": "FortiManager VM64-AWSONDEMAND *(7.0.*)*|5j3m869sh84tixvmg9br26hkn",
+				"PAYG10Devices": "FortiManager VM64-AWSONDEMAND *(7.0.*)*|691k7ni0x5sbcj3reejxw3cy1",
+				"PAYG30Devices": "FortiManager VM64-AWSONDEMAND *(7.0.*)*|8gmpxt177zhq1vhh32l7o69wf",
+				"PAYG100Devices": "FortiManager VM64-AWSONDEMAND *(7.0.*)*|d3o35cw8hzusqeiv83jl1xuwb",
+				"PAYG500Devices": "FortiManager VM64-AWSONDEMAND *(7.0.*)*|e5s6s9r3hgizwpe9tavoxwkzv"
+			},
+			"7.2.x": {
+				"BYOL": "FortiManager VM64-AWS *(7.2.*)*|os40mk0fw6472m8ak2lnzp4s",
+				"PAYG2Devices": "FortiManager VM64-AWSONDEMAND *(7.2.*)*|5j3m869sh84tixvmg9br26hkn",
+				"PAYG10Devices": "FortiManager VM64-AWSONDEMAND *(7.2.*)*|691k7ni0x5sbcj3reejxw3cy1",
+				"PAYG30Devices": "FortiManager VM64-AWSONDEMAND *(7.2.*)*|8gmpxt177zhq1vhh32l7o69wf",
+				"PAYG100Devices": "FortiManager VM64-AWSONDEMAND *(7.2.*)*|d3o35cw8hzusqeiv83jl1xuwb",
+				"PAYG500Devices": "FortiManager VM64-AWSONDEMAND *(7.2.*)*|e5s6s9r3hgizwpe9tavoxwkzv"
+			}
+		}
+	},
+	"Conditions": {
+		"CreateEIP": {
+			"Fn::Equals": [
+				{
+					"Ref": "PubliclyAvailable"
+				},
+				"Yes"
+			]
+		}
+	},
+	"Resources": {
+		"InstanceRole": {
+			"Type": "AWS::IAM::Role",
+			"Properties": {
+				"AssumeRolePolicyDocument": {
+					"Version": "2012-10-17",
+					"Statement": [
+						{
+							"Effect": "Allow",
+							"Principal": {
+								"Service": [
+									"ec2.amazonaws.com"
+								]
+							},
+							"Action": [
+								"sts:AssumeRole"
+							]
+						}
+					]
+				},
+				"Path": "/",
+				"Policies": [
+					{
+						"PolicyName": "Policy",
+						"PolicyDocument": {
+							"Version": "2012-10-17",
+							"Statement": [
+								{
+									"Sid": "BootStrapFromS3",
+									"Effect": "Allow",
+									"Action": [
+										"s3:GetObject"
+									],
+									"Resource": "*"
+								},
+								{
+									"Sid": "SDNConnectorFortiView",
+									"Effect": "Allow",
+									"Action": [
+										"ec2:DescribeInstances",
+										"ec2:DescribeRegions",
+										"eks:DescribeCluster",
+										"eks:ListClusters",
+										"inspector:DescribeFindings",
+										"inspector:ListFindings"
+									],
+									"Resource": "*"
+								}
+							]
+						}
+					}
+				]
+			}
+		},
+		"InstanceProfile": {
+			"Type": "AWS::IAM::InstanceProfile",
+			"Properties": {
+				"Path": "/",
+				"Roles": [
+					{
+						"Ref": "InstanceRole"
+					}
+				]
+			}
+		},
+		"FortiManagerSecGrp": {
+			"Type": "AWS::EC2::SecurityGroup",
+			"Properties": {
+				"VpcId": {
+					"Ref": "VPCID"
+				},
+				"GroupDescription": "FortiManagerSecGrp",
+				"SecurityGroupIngress": [
+					{
+						"Description": "Allow remote access to tcp port 443 Fmg",
+						"IpProtocol": "tcp",
+						"FromPort": "443",
+						"ToPort": "443",
+						"CidrIp": {
+							"Ref": "CIDRForInstanceAccess"
+						}
+					},
+					{
+						"Description": "Allow remote access to tcp port 514 Fmg",
+						"IpProtocol": "tcp",
+						"FromPort": "514",
+						"ToPort": "514",
+						"CidrIp": {
+							"Ref": "CIDRForInstanceAccess"
+						}
+					},
+					{
+						"Description": "Allow local VPC access to Fmg",
+						"IpProtocol": "-1",
+						"FromPort": "0",
+						"ToPort": "65535",
+						"CidrIp": {
+							"Ref": "VPCCIDR"
+						}
+					},
+					{
+						"Description": "Allow 10.0.0.0/8 access to tcp port 514 Fmg",
+						"IpProtocol": "tcp",
+						"FromPort": "514",
+						"ToPort": "514",
+						"CidrIp": "10.0.0.0/8"
+					},
+					{
+						"Description": "Allow 172.16.0.0/12 access to tcp port 514 Fmg",
+						"IpProtocol": "tcp",
+						"FromPort": "514",
+						"ToPort": "514",
+						"CidrIp": "172.16.0.0/12"
+					},
+					{
+						"Description": "Allow 192.168.0.0/16 access to tcp port 514 Fmg",
+						"IpProtocol": "tcp",
+						"FromPort": "514",
+						"ToPort": "514",
+						"CidrIp": "192.168.0.0/16"
+					},
+					{
+						"Description": "Allow 10.0.0.0/8 access to udp port 514 Fmg",
+						"IpProtocol": "udp",
+						"FromPort": "514",
+						"ToPort": "514",
+						"CidrIp": "10.0.0.0/8"
+					},
+					{
+						"Description": "Allow 172.16.0.0/12 access to udp port 514 Fmg",
+						"IpProtocol": "udp",
+						"FromPort": "514",
+						"ToPort": "514",
+						"CidrIp": "172.16.0.0/12"
+					},
+					{
+						"Description": "Allow 192.168.0.0/16 access to udp port 514 Fmg",
+						"IpProtocol": "udp",
+						"FromPort": "514",
+						"ToPort": "514",
+						"CidrIp": "192.168.0.0/16"
+					}
+				]
+			}
+		},
+		"Fmg": {
+			"Type": "AWS::EC2::Instance",
+			"Properties": {
+				"ImageId": {
+					"Fn::GetAtt": [
+						"RunImageFunction",
+						"ami"
+					]
+				},
+				"InstanceType": {
+					"Ref": "InstanceType"
+				},
+				"IamInstanceProfile": {
+					"Ref": "InstanceProfile"
+				},
+				"KeyName": {
+					"Ref": "KeyPair"
+				},
+				"BlockDeviceMappings": [
+					{
+						"DeviceName": "/dev/sda1",
+						"Ebs": {
+							"VolumeType": "gp2",
+							"VolumeSize": "5",
+							"DeleteOnTermination": "true",
+							"Encrypted": {
+								"Ref": "EncryptVolumes"
+							}
+						}
+					},
+					{
+						"DeviceName": "/dev/sdb",
+						"Ebs": {
+							"VolumeType": "gp2",
+							"VolumeSize": "80",
+							"DeleteOnTermination": "true",
+							"Encrypted": {
+								"Ref": "EncryptVolumes"
+							}
+						}
+					}
+				],
+				"NetworkInterfaces": [
+					{
+						"NetworkInterfaceId": {
+							"Ref": "FmgEni0"
+						},
+						"DeviceIndex": "0"
+					}
+				],
+				"Tags": [
+					{
+						"Key": "Name",
+						"Value": {
+							"Ref": "StackName"
+						}
+					}
+				],
+				"UserData": {
+					"Fn::Base64": {
+						"Fn::Join": [
+							"\n",
+							[
+								"config system global",
+								"set hostname iday-fmg1",
+								"set pre-login-banner disable",
+								"end",
+								"config system admin setting",
+								"set idle_timeout 3600",
+								"end",
+								"config system admin user",
+								"edit admin",
+								"set password FORTInet123!",
+								"end",
+								"config system interface",
+								"edit port1",
+								"set alias public",
+								"set mode dhcp",
+								"set allowaccess ping https",
+								"next",
+								"end",
+								"config system certificate ca",
+								"edit 'AmazonRootCA1'",
+								"set ca '-----BEGIN CERTIFICATE-----",
+								"MIIDQTCCAimgAwIBAgITBmyfz5m/jAo54vB4ikPmljZbyjANBgkqhkiG9w0BAQsF",
+								"ADA5MQswCQYDVQQGEwJVUzEPMA0GA1UEChMGQW1hem9uMRkwFwYDVQQDExBBbWF6",
+								"b24gUm9vdCBDQSAxMB4XDTE1MDUyNjAwMDAwMFoXDTM4MDExNzAwMDAwMFowOTEL",
+								"MAkGA1UEBhMCVVMxDzANBgNVBAoTBkFtYXpvbjEZMBcGA1UEAxMQQW1hem9uIFJv",
+								"b3QgQ0EgMTCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBALJ4gHHKeNXj",
+								"ca9HgFB0fW7Y14h29Jlo91ghYPl0hAEvrAIthtOgQ3pOsqTQNroBvo3bSMgHFzZM",
+								"9O6II8c+6zf1tRn4SWiw3te5djgdYZ6k/oI2peVKVuRF4fn9tBb6dNqcmzU5L/qw",
+								"IFAGbHrQgLKm+a/sRxmPUDgH3KKHOVj4utWp+UhnMJbulHheb4mjUcAwhmahRWa6",
+								"VOujw5H5SNz/0egwLX0tdHA114gk957EWW67c4cX8jJGKLhD+rcdqsq08p8kDi1L",
+								"93FcXmn/6pUCyziKrlA4b9v7LWIbxcceVOF34GfID5yHI9Y/QCB/IIDEgEw+OyQm",
+								"jgSubJrIqg0CAwEAAaNCMEAwDwYDVR0TAQH/BAUwAwEB/zAOBgNVHQ8BAf8EBAMC",
+								"AYYwHQYDVR0OBBYEFIQYzIU07LwMlJQuCFmcx7IQTgoIMA0GCSqGSIb3DQEBCwUA",
+								"A4IBAQCY8jdaQZChGsV2USggNiMOruYou6r4lK5IpDB/G/wkjUu0yKGX9rbxenDI",
+								"U5PMCCjjmCXPI6T53iHTfIUJrU6adTrCC2qJeHZERxhlbI1Bjjt/msv0tadQ1wUs",
+								"N+gDS63pYaACbvXy8MWy7Vu33PqUXHeeE6V/Uq2V8viTO96LXFvKWlJbYK8U90vv",
+								"o/ufQJVtMVT8QtPHRh8jrdkPSHCa2XV4cdFyQzR1bldZwgJcJmApzyMZFo6IQ6XU",
+								"5MsI+yMRQ+hDKXJioaldXgjUkK642M4UwtBV8ob2xJNDd2ZhwLnoQdeXeGADbkpy",
+								"rqXRfboQnoZsG4q5WTP468SQvvG5",
+								"-----END CERTIFICATE-----'",
+								"set comment 'https://www.amazontrust.com/repository/'",
+								"next",
+								"edit 'AmazonRootCA2'",
+								"set ca '-----BEGIN CERTIFICATE-----",
+								"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",
+								"4PsJYGw=",
+								"-----END CERTIFICATE-----'",
+								"set comment 'https://www.amazontrust.com/repository/'",
+								"next",
+								"edit 'AmazonRootCA3'",
+								"set ca '-----BEGIN CERTIFICATE-----",
+								"MIIBtjCCAVugAwIBAgITBmyf1XSXNmY/Owua2eiedgPySjAKBggqhkjOPQQDAjA5",
+								"MQswCQYDVQQGEwJVUzEPMA0GA1UEChMGQW1hem9uMRkwFwYDVQQDExBBbWF6b24g",
+								"Um9vdCBDQSAzMB4XDTE1MDUyNjAwMDAwMFoXDTQwMDUyNjAwMDAwMFowOTELMAkG",
+								"A1UEBhMCVVMxDzANBgNVBAoTBkFtYXpvbjEZMBcGA1UEAxMQQW1hem9uIFJvb3Qg",
+								"Q0EgMzBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABCmXp8ZBf8ANm+gBG1bG8lKl",
+								"ui2yEujSLtf6ycXYqm0fc4E7O5hrOXwzpcVOho6AF2hiRVd9RFgdszflZwjrZt6j",
+								"QjBAMA8GA1UdEwEB/wQFMAMBAf8wDgYDVR0PAQH/BAQDAgGGMB0GA1UdDgQWBBSr",
+								"ttvXBp43rDCGB5Fwx5zEGbF4wDAKBggqhkjOPQQDAgNJADBGAiEA4IWSoxe3jfkr",
+								"BqWTrBqYaGFy+uGh0PsceGCmQ5nFuMQCIQCcAu/xlJyzlvnrxir4tiz+OpAUFteM",
+								"YyRIHN8wfdVoOw==",
+								"-----END CERTIFICATE-----'",
+								"set comment 'https://www.amazontrust.com/repository/'",
+								"next",
+								"edit 'AmazonRootCA4'",
+								"set ca '-----BEGIN CERTIFICATE-----",
+								"MIIB8jCCAXigAwIBAgITBmyf18G7EEwpQ+Vxe3ssyBrBDjAKBggqhkjOPQQDAzA5",
+								"MQswCQYDVQQGEwJVUzEPMA0GA1UEChMGQW1hem9uMRkwFwYDVQQDExBBbWF6b24g",
+								"Um9vdCBDQSA0MB4XDTE1MDUyNjAwMDAwMFoXDTQwMDUyNjAwMDAwMFowOTELMAkG",
+								"A1UEBhMCVVMxDzANBgNVBAoTBkFtYXpvbjEZMBcGA1UEAxMQQW1hem9uIFJvb3Qg",
+								"Q0EgNDB2MBAGByqGSM49AgEGBSuBBAAiA2IABNKrijdPo1MN/sGKe0uoe0ZLY7Bi",
+								"9i0b2whxIdIA6GO9mif78DluXeo9pcmBqqNbIJhFXRbb/egQbeOc4OO9X4Ri83Bk",
+								"M6DLJC9wuoihKqB1+IGuYgbEgds5bimwHvouXKNCMEAwDwYDVR0TAQH/BAUwAwEB",
+								"/zAOBgNVHQ8BAf8EBAMCAYYwHQYDVR0OBBYEFNPsxzplbszh2naaVvuc84ZtV+WB",
+								"MAoGCCqGSM49BAMDA2gAMGUCMDqLIfG9fhGt0O9Yli/W651+kI0rz2ZVwyzjKKlw",
+								"CkcO8DdZEv8tmZQoTipPNU0zWgIxAOp1AE47xDqUEpHJWEadIRNyp4iciuRMStuW",
+								"1KyLa2tJElMzrdfkviT8tQp21KW8EA==",
+								"-----END CERTIFICATE-----'",
+								"set comment 'https://www.amazontrust.com/repository/'",
+								"next",
+								"edit 'SFSRootCAG2'",
+								"set ca '-----BEGIN CERTIFICATE-----",
+								"MIID7zCCAtegAwIBAgIBADANBgkqhkiG9w0BAQsFADCBmDELMAkGA1UEBhMCVVMx",
+								"EDAOBgNVBAgTB0FyaXpvbmExEzARBgNVBAcTClNjb3R0c2RhbGUxJTAjBgNVBAoT",
+								"HFN0YXJmaWVsZCBUZWNobm9sb2dpZXMsIEluYy4xOzA5BgNVBAMTMlN0YXJmaWVs",
+								"ZCBTZXJ2aWNlcyBSb290IENlcnRpZmljYXRlIEF1dGhvcml0eSAtIEcyMB4XDTA5",
+								"MDkwMTAwMDAwMFoXDTM3MTIzMTIzNTk1OVowgZgxCzAJBgNVBAYTAlVTMRAwDgYD",
+								"VQQIEwdBcml6b25hMRMwEQYDVQQHEwpTY290dHNkYWxlMSUwIwYDVQQKExxTdGFy",
+								"ZmllbGQgVGVjaG5vbG9naWVzLCBJbmMuMTswOQYDVQQDEzJTdGFyZmllbGQgU2Vy",
+								"dmljZXMgUm9vdCBDZXJ0aWZpY2F0ZSBBdXRob3JpdHkgLSBHMjCCASIwDQYJKoZI",
+								"hvcNAQEBBQADggEPADCCAQoCggEBANUMOsQq+U7i9b4Zl1+OiFOxHz/Lz58gE20p",
+								"OsgPfTz3a3Y4Y9k2YKibXlwAgLIvWX/2h/klQ4bnaRtSmpDhcePYLQ1Ob/bISdm2",
+								"8xpWriu2dBTrz/sm4xq6HZYuajtYlIlHVv8loJNwU4PahHQUw2eeBGg6345AWh1K",
+								"Ts9DkTvnVtYAcMtS7nt9rjrnvDH5RfbCYM8TWQIrgMw0R9+53pBlbQLPLJGmpufe",
+								"hRhJfGZOozptqbXuNC66DQO4M99H67FrjSXZm86B0UVGMpZwh94CDklDhbZsc7tk",
+								"6mFBrMnUVN+HL8cisibMn1lUaJ/8viovxFUcdUBgF4UCVTmLfwUCAwEAAaNCMEAw",
+								"DwYDVR0TAQH/BAUwAwEB/zAOBgNVHQ8BAf8EBAMCAQYwHQYDVR0OBBYEFJxfAN+q",
+								"AdcwKziIorhtSpzyEZGDMA0GCSqGSIb3DQEBCwUAA4IBAQBLNqaEd2ndOxmfZyMI",
+								"bw5hyf2E3F/YNoHN2BtBLZ9g3ccaaNnRbobhiCPPE95Dz+I0swSdHynVv/heyNXB",
+								"ve6SbzJ08pGCL72CQnqtKrcgfU28elUSwhXqvfdqlS5sdJ/PHLTyxQGjhdByPq1z",
+								"qwubdQxtRbeOlKyWN7Wg0I8VRw7j6IPdj/3vQQF3zCepYoUz8jcI73HPdwbeyBkd",
+								"iEDPfUYd/x7H4c7/I9vG+o1VTqkC50cRRj70/b17KSa7qWFiNyi2LSr2EIZkyXCn",
+								"0q23KXB56jzaYyWf/Wi3MOxw+3WKt21gZ7IeyLnp2KhvAotnDU0mV3HaIPzBSlCN",
+								"sSi6",
+								"-----END CERTIFICATE-----'",
+								"set comment 'https://www.amazontrust.com/repository/'",
+								"next",
+								"end",
+								{
+									"Fn::Sub": [
+										"exec vm-license ${token}",
+										{
+											"token": {
+												"Ref": "FortiManagerLicenseToken"
+											}
+										}
+									]
+								},
+								""
+							]
+						]
+					}
+				}
+			}
+		},
+		"FmgEni0": {
+			"Type": "AWS::EC2::NetworkInterface",
+			"Properties": {
+				"Description": "port1",
+				"GroupSet": [
+					{
+						"Ref": "FortiManagerSecGrp"
+					}
+				],
+				"SourceDestCheck": "false",
+				"SubnetId": {
+					"Ref": "Subnet"
+				},
+				"Tags": [
+					{
+						"Key": "Name",
+						"Value": {
+							"Fn::Join": [
+								"",
+								[
+									{
+										"Ref": "StackName"
+									},
+									"-fmg1eni0"
+								]
+							]
+						}
+					},
+					{
+						"Key": "Interface",
+						"Value": "eth0"
+					}
+				],
+				"PrivateIpAddresses": [
+					{
+						"PrivateIpAddress": {
+							"Fn::Select": [
+								"0",
+								{
+									"Fn::Split": [
+										"/",
+										{
+											"Ref": "FortiManagerIP"
+										}
+									]
+								}
+							]
+						},
+						"Primary": "true"
+					}
+				]
+			}
+		},
+		"FmgEIP": {
+			"Type": "AWS::EC2::EIP",
+			"Condition": "CreateEIP",
+			"Properties": {
+				"Domain": "vpc"
+			}
+		},
+		"FmgEIPASSOCIATION": {
+			"Type": "AWS::EC2::EIPAssociation",
+			"Condition": "CreateEIP",
+			"Properties": {
+				"AllocationId": {
+					"Fn::GetAtt": [
+						"FmgEIP",
+						"AllocationId"
+					]
+				},
+				"NetworkInterfaceId": {
+					"Ref": "FmgEni0"
+				},
+				"PrivateIpAddress": {
+					"Fn::Select": [
+						"0",
+						{
+							"Fn::Split": [
+								"/",
+								{
+									"Ref": "FortiManagerIP"
+								}
+							]
+						}
+					]
+				}
+			},
+			"DependsOn": "FmgEIP"
+		},
+		"LambdaRole": {
+			"Type": "AWS::IAM::Role",
+			"Properties": {
+				"AssumeRolePolicyDocument": {
+					"Version": "2012-10-17",
+					"Statement": [
+						{
+							"Effect": "Allow",
+							"Principal": {
+								"Service": [
+									"lambda.amazonaws.com"
+								]
+							},
+							"Action": [
+								"sts:AssumeRole"
+							]
+						}
+					]
+				},
+				"Path": "/",
+				"Policies": [
+					{
+						"PolicyName": "S3AccessRole",
+						"PolicyDocument": {
+							"Version": "2012-10-17",
+							"Statement": [
+								{
+									"Effect": "Allow",
+									"Action": [
+										"s3:PutObject",
+										"ec2:DescribeImages"
+									],
+									"Resource": "*"
+								},
+								{
+									"Effect": "Allow",
+									"Action": [
+										"logs:*"
+									],
+									"Resource": "*"
+								}
+							]
+						}
+					}
+				]
+			}
+		},
+		"ImageFunction": {
+			"Type": "AWS::Lambda::Function",
+			"Properties": {
+				"Code": {
+					"ZipFile": {
+						"Fn::Join": [
+							"\n",
+							[
+								"import boto3",
+								"import cfnresponse",
+								"import logging",
+								"import json",
+								"logger = logging.getLogger()",
+								"logger.setLevel(logging.INFO)",
+								"client = boto3.client('ec2')",
+								"",
+								"def handler(event, context):",
+								"    if event['RequestType'] == 'Create':",
+								"        logger.info('<-- event received: {}'.format(json.dumps(event)))",
+								"    else:",
+								"        responseData = {'msg':'200'}",
+								"        cfnresponse.send(event, context, cfnresponse.SUCCESS, responseData)",
+								"        return None",
+								"",
+								"    try:",
+								"        resp = client.describe_images(",
+								"            Filters=[",
+								"                {'Name': 'name', 'Values': [event['ResourceProperties']['LicenseType']]},",
+								"                {'Name': 'product-code.type', 'Values': ['marketplace']},",
+								"                {'Name': 'product-code', 'Values': [event['ResourceProperties']['ProductCode']]}",
+								"            ],",
+								"            Owners=['679593333241', '464423754048', '211372476111', '345084742485', '874634375141', '939706979954', '769304176199']",
+								"        )",
+								"    except Exception as error:",
+								"        logger.error('<--!! Exception: {}'.format(error))",
+								"        responseData = {'msg':'Exception: {}'.format(error)}",
+								"        cfnresponse.send(event, context, cfnresponse.FAILED, responseData)",
+								"",
+								"    if resp['ResponseMetadata']['HTTPStatusCode'] == 200 and resp['Images'] != []:",
+								"        ami_dict = {}",
+								"        ami_list = []",
+								"        for entry in resp['Images']:",
+								"            key = entry['CreationDate']",
+								"            ami_dict[key] = entry['ImageId']",
+								"        ami_list = sorted(ami_dict, reverse = True)",
+								"        logger.info('--> found latest AMI: {}, {}'.format(ami_dict[ami_list[0]], ami_list[0]))",
+								"        responseData = {'ami': ami_dict[ami_list[0]]}",
+								"        cfnresponse.send(event, context, cfnresponse.SUCCESS, responseData)",
+								"    else:",
+								"        logger.error('!!--> Unable to find AMI {} in describe_images response! {}'.format(event['ResourceProperties']['LicenseType'],resp))",
+								"        responseData = {'msg':'Unable to find AMI {} in describe_images response! {}'.format(event['ResourceProperties']['LicenseType'],resp)}",
+								"        cfnresponse.send(event, context, cfnresponse.FAILED, responseData)",
+								""
+							]
+						]
+					}
+				},
+				"Role": {
+					"Fn::GetAtt": [
+						"LambdaRole",
+						"Arn"
+					]
+				},
+				"Timeout": 120,
+				"Handler": "index.handler",
+				"Runtime": "python3.9",
+				"MemorySize": 128
+			}
+		},
+		"RunImageFunction": {
+			"Type": "Custom::ImageFunction",
+			"Properties": {
+				"ServiceToken": {
+					"Fn::GetAtt": [
+						"ImageFunction",
+						"Arn"
+					]
+				},
+				"LicenseType": {
+					"Fn::Select": [
+						"0",
+						{
+							"Fn::Split": [
+								"|",
+								{
+									"Fn::FindInMap": [
+										"FortiOSAMISearchString",
+										{
+											"Ref": "FortiManagerVersion"
+										},
+										{
+											"Ref": "LicenseType"
+										}
+									]
+								}
+							]
+						}
+					]
+				},
+				"ProductCode": {
+					"Fn::Select": [
+						"1",
+						{
+							"Fn::Split": [
+								"|",
+								{
+									"Fn::FindInMap": [
+										"FortiOSAMISearchString",
+										{
+											"Ref": "FortiManagerVersion"
+										},
+										{
+											"Ref": "LicenseType"
+										}
+									]
+								}
+							]
+						}
+					]
+				}
+			}
+		}
+	},
+	"Outputs": {
+		"Username": {
+			"Value": "admin",
+			"Description": "Username for the FortiManagers"
+		},
+		"Password": {
+			"Value": "FORTInet123!",
+			"Description": "Password for the FortiManager"
+		},
+		"FortiManagerLoginURL": {
+			"Value": {
+				"Fn::Join": [
+					"",
+					[
+						"https://",
+						{
+							"Fn::If": [
+								"CreateEIP",
+								{
+									"Ref": "FmgEIP"
+								},
+								{
+									"Fn::GetAtt": [
+										"FmgEni0",
+										"PrimaryPrivateIpAddress"
+									]
+								}
+							]
+						}
+					]
+				]
+			},
+			"Description": "Login URL for FortiManager"
+		}
+	}
+}
