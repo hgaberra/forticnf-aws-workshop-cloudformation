@@ -1,4 +1,1 @@
-
-# Secure AWS workloads with FortiGate CNF SaaS
-
-[Click here for the workshop guide for this repo](https://fortinetsecdevops.github.io/cnf-aws-iday/)
+### This solution has been moved to [FortinetCloudCSE github org](https://github.com/FortinetCloudCSE). Please reference this new github org for the latest solutions from our team.
